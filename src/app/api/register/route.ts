@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebase-admin";
+import { getAdminDb } from "@/lib/firebase-admin";
 import {
   hashPassword,
   validateAccountId,
@@ -40,9 +40,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Query Firestore via firebase-admin to check if Account ID already exists
+    // 2. Query Firestore via firebase-admin lazily
+    const db = getAdminDb();
     console.log(`[Register API] Querying Firestore for user document '${accountId}'...`);
-    const userDocRef = adminDb.collection("users").doc(accountId);
+    const userDocRef = db.collection("users").doc(accountId);
     
     let userDoc;
     try {

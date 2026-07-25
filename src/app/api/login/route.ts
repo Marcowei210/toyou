@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebase-admin";
+import { getAdminDb } from "@/lib/firebase-admin";
 import { hashPassword, validateAccountId, validatePassword } from "@/lib/auth-utils";
 
 export async function POST(request: Request) {
@@ -21,8 +21,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Fetch user profile
-    const userDocRef = adminDb.collection("users").doc(accountId);
+    // 2. Fetch user profile lazily
+    const db = getAdminDb();
+    const userDocRef = db.collection("users").doc(accountId);
     const userDoc = await userDocRef.get();
 
     if (!userDoc.exists) {
