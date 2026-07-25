@@ -1,4 +1,4 @@
-import { getApps, initializeApp, getApp, cert } from "firebase-admin/app";
+import { initializeApp, getApps, getApp, cert, App } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 import { getStorage } from "firebase-admin/storage";
@@ -25,8 +25,11 @@ const projectId =
   process.env.GCLOUD_PROJECT ||
   "demo-detective-game";
 
-function initAdminApp() {
-  if (getApps().length > 0) return getApp();
+function initAdminApp(): App {
+  // Prevent double initialization in serverless environments
+  if (getApps().length > 0) {
+    return getApp();
+  }
 
   if (isEmulator) {
     return initializeApp({
@@ -35,37 +38,50 @@ function initAdminApp() {
     });
   }
 
-  // Production (Vercel) initialization via service account key JSON or individual credentials
+  // 1. Production initialization via FIREBASE_SERVICE_ACCOUNT_KEY JSON string
   const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
-
   if (serviceAccountKey) {
     try {
-      const parsed = JSON.parse(serviceAccountKey);
+      const parsedKey = typeof serviceAccountKey === "string" ? JSON.parse(serviceAccountKey) : serviceAccountKey;
+      
+      // Fix private key escaped newlines (\n)
+      if (parsedKey.private_key) {
+        parsedKey.private_key = parsedKey.private_key.replace(/\\n/g, "\n");
+      }
+
+      console.log(`[Firebase Admin] Initializing with service account for project '${parsedKey.project_id || projectId}'`);
       return initializeApp({
-        credential: cert(parsed),
-        projectId: parsed.project_id || projectId,
-        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || `${projectId}.appspot.com`,
+        credential: cert(parsedKey),
+        projectId: parsedKey.project_id || projectId,
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || `${parsedKey.project_id || projectId}.appspot.com`,
       });
-    } catch (err) {
-      console.error("[Firebase Admin] Invalid FIREBASE_SERVICE_ACCOUNT_KEY JSON:", err);
+    } catch (parseErr: any) {
+      console.error(
+        "[Firebase Admin Error] Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY JSON string on Vercel:",
+        parseErr?.message || parseErr
+      );
     }
   }
 
-  if (clientEmail && privateKey) {
+  // 2. Production initialization via individual credentials (FIREBASE_CLIENT_EMAIL & FIREBASE_PRIVATE_KEY)
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const rawPrivateKey = process.env.FIREBASE_PRIVATE_KEY;
+  if (clientEmail && rawPrivateKey) {
+    const formattedPrivateKey = rawPrivateKey.replace(/\\n/g, "\n");
+    console.log(`[Firebase Admin] Initializing with client email '${clientEmail}'`);
     return initializeApp({
       credential: cert({
         projectId,
         clientEmail,
-        privateKey,
+        privateKey: formattedPrivateKey,
       }),
       projectId,
       storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || `${projectId}.appspot.com`,
     });
   }
 
-  // Fallback default initialization
+  // 3. Fallback default initialization
+  console.log(`[Firebase Admin] Initializing with default application credentials for project '${projectId}'`);
   return initializeApp({
     projectId,
     storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || `${projectId}.appspot.com`,
