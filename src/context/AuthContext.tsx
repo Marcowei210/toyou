@@ -141,9 +141,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({ accountId, password }),
     });
 
-    const data = await res.json();
+    const responseText = await res.text();
+    let data: any = {};
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      console.error("Non-JSON login response received from server:", responseText);
+      throw new Error(
+        res.ok
+          ? "伺服器回應格式錯誤"
+          : `伺服器連線失敗 (${res.status}): ${responseText.slice(0, 100)}`
+      );
+    }
+
     if (!res.ok) {
-      throw new Error(data.error || "Login failed");
+      throw new Error(data.error || "登入失敗");
     }
 
     // Authenticate anonymously on client
@@ -167,10 +179,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({ accountId, password, nickname }),
     });
 
-    const data = await res.json();
+    const responseText = await res.text();
+    let data: any = {};
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      console.error("Non-JSON registration response received from server:", responseText);
+      throw new Error(
+        res.ok
+          ? "伺服器回應格式錯誤"
+          : `伺服器連線失敗 (${res.status}): ${responseText.slice(0, 100)}`
+      );
+    }
+
     if (!res.ok) {
       // STOP execution immediately if API returns non-200 OK
-      throw new Error(data.error || "Registration failed. Account ID may already be taken.");
+      throw new Error(data.error || "註冊失敗，該 Account ID 可能已被使用");
     }
 
     // ONLY after 200 OK response from API, sign in anonymously and set up session
