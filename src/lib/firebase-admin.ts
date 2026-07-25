@@ -22,6 +22,7 @@ if (isEmulator) {
 
 const projectId =
   process.env.FIREBASE_PROJECT_ID ||
+  process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
   process.env.GCLOUD_PROJECT ||
   "demo-detective-game";
 
@@ -38,37 +39,14 @@ function initAdminApp(): App {
     });
   }
 
-  // 1. Production initialization via FIREBASE_SERVICE_ACCOUNT_KEY JSON string
-  const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-  if (serviceAccountKey) {
-    try {
-      const parsedKey = typeof serviceAccountKey === "string" ? JSON.parse(serviceAccountKey) : serviceAccountKey;
-      
-      // Fix private key escaped newlines (\n)
-      if (parsedKey.private_key) {
-        parsedKey.private_key = parsedKey.private_key.replace(/\\n/g, "\n");
-      }
-
-      console.log(`[Firebase Admin] Initializing with service account for project '${parsedKey.project_id || projectId}'`);
-      return initializeApp({
-        credential: cert(parsedKey),
-        projectId: parsedKey.project_id || projectId,
-        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || `${parsedKey.project_id || projectId}.appspot.com`,
-      });
-    } catch (parseErr: any) {
-      console.error(
-        "[Firebase Admin Error] Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY JSON string on Vercel:",
-        parseErr?.message || parseErr
-      );
-    }
-  }
-
-  // 2. Production initialization via individual credentials (FIREBASE_CLIENT_EMAIL & FIREBASE_PRIVATE_KEY)
+  // Production Vercel initialization using 3 separate environment variables
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const rawPrivateKey = process.env.FIREBASE_PRIVATE_KEY;
+
   if (clientEmail && rawPrivateKey) {
+    // Format private key escaped newlines (\n) to actual newlines
     const formattedPrivateKey = rawPrivateKey.replace(/\\n/g, "\n");
-    console.log(`[Firebase Admin] Initializing with client email '${clientEmail}'`);
+    console.log(`[Firebase Admin] Initializing with client email '${clientEmail}' for project '${projectId}'`);
     return initializeApp({
       credential: cert({
         projectId,
@@ -80,7 +58,7 @@ function initAdminApp(): App {
     });
   }
 
-  // 3. Fallback default initialization
+  // Fallback default initialization
   console.log(`[Firebase Admin] Initializing with default application credentials for project '${projectId}'`);
   return initializeApp({
     projectId,
