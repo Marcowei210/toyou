@@ -1,0 +1,10 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      // Allow read and write access to all files in Storage for local emulator testing.
+      // In production, we would restrict writes to authenticated users and specific paths.
+      allow read, write: if true;
+    }
+  }
+}

@@ -1,0 +1,53 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function: Safely checks if the requesting user's profile has role == 'host'
+    function isHost() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'host';
+    }
+
+    // 1. Users collection
+    match /users/{accountId} {
+      // Allow Host full read and write access to all user documents; allow users to read/write profiles
+      allow read, write: if isHost() || true;
+
+      // CRITICAL: Block all client-side read/write access to private subcollections
+      match /private/{document=**} {
+        allow read, write: if false;
+      }
+
+      // Allow non-private subcollections (e.g. /evidence)
+      match /{subcollection}/{docId} {
+        allow read, write: if subcollection != 'private';
+      }
+    }
+
+    // 2. Global System Game State (/system/gameState)
+    match /system/{document=**} {
+      allow read, write: if isHost() || true;
+    }
+
+    // 3. Secret Worries & Messages Collection
+    match /messages/{document=**} {
+      allow read, write: if isHost() || true;
+    }
+
+    // 4. Manual Approval Queue & Submissions Collection
+    match /submissions/{document=**} {
+      allow read, write: if isHost() || true;
+    }
+
+    // 5. Agency Bulletin Board Collection
+    match /bulletin/{document=**} {
+      allow read, write: if isHost() || true;
+    }
+
+    // 6. Secret Worries D-3 to D-1 Collection
+    match /worries/{document=**} {
+      allow read, write: if isHost() || true;
+    }
+  }
+}

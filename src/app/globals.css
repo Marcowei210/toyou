@@ -1,0 +1,69 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
+@import "tailwindcss";
+
+:root {
+  --background: #F4F1EA; /* Scrapbook Off-White / Cardboard Color */
+  --foreground: #1c1917; /* Dark Ink Text */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+}
+
+.font-handwriting {
+  font-family: 'PingFang TC', 'Heiti TC', 'Microsoft JhengHei', 'Noto Sans TC', sans-serif !important;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'PingFang TC', 'Heiti TC', 'Microsoft JhengHei', 'Noto Sans TC', sans-serif !important;
+  overflow-x: hidden;
+}
+
+/* Monospace Inputs and Noir UI elements */
+input, textarea, select, button {
+  font-family: 'PingFang TC', 'Heiti TC', 'Microsoft JhengHei', 'Noto Sans TC', sans-serif !important;
+}
+
+/* Micro-animations and custom effects */
+.typewriter-fade {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Styling custom validity states following the Modern Web Guidance */
+input:user-invalid {
+  border-color: #ef4444 !important;
+  background-color: rgba(239, 68, 110, 0.05) !important;
+}
+
+input:user-valid {
+  border-color: #10b981 !important;
+}
+
+/* Style hints using the adjacent sibling selector */
+input:user-invalid + .error-msg {
+  display: block;
+}
+
+/* Custom typewriter typing effect caret */
+.typing-caret::after {
+  content: "|";
+  animation: blink 0.8s infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}

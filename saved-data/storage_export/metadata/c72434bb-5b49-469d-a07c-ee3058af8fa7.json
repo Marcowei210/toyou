@@ -1,0 +1,19 @@
+{
+  "name": "evidence/tester/yng247_IMG_0178.jpg",
+  "bucket": "demo-detective-game.appspot.com",
+  "metageneration": 1,
+  "generation": 1784888568233,
+  "contentType": "image/jpeg",
+  "storageClass": "STANDARD",
+  "contentDisposition": "inline",
+  "downloadTokens": [
+    "16b55e08-8a88-4f42-bf3b-bd7906962cf5"
+  ],
+  "etag": "vzbdjtlfW0/fZI/8zyR/Fnxvslk",
+  "customMetadata": {},
+  "timeCreated": "2026-07-24T10:22:48.233Z",
+  "updated": "2026-07-24T10:22:48.233Z",
+  "size": 270886,
+  "md5Hash": "mB/zqHAw1v2VdFBejHAbEg==",
+  "crc32c": "4024110352"
+}

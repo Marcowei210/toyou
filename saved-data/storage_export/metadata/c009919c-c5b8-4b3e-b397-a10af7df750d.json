@@ -1,0 +1,19 @@
+{
+  "name": "avatars/marco2",
+  "bucket": "demo-detective-game.appspot.com",
+  "metageneration": 1,
+  "generation": 1784884468359,
+  "contentType": "image/png",
+  "storageClass": "STANDARD",
+  "contentDisposition": "inline",
+  "downloadTokens": [
+    "4bb17e8c-6bf8-493e-866d-bd28bcd2e46f"
+  ],
+  "etag": "MBTgAXx1g7eHYesSi4+DoSKC33c",
+  "customMetadata": {},
+  "timeCreated": "2026-07-24T09:14:28.359Z",
+  "updated": "2026-07-24T09:14:28.359Z",
+  "size": 22512,
+  "md5Hash": "Yqe9buH6joYpyTNT8F3mAQ==",
+  "crc32c": "714685961"
+}
