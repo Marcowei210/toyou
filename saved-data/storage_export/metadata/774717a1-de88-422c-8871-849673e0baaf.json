@@ -1,0 +1,19 @@
+{
+  "name": "avatars/Marco6",
+  "bucket": "demo-detective-game.appspot.com",
+  "metageneration": 1,
+  "generation": 1785000524071,
+  "contentType": "image/png",
+  "storageClass": "STANDARD",
+  "contentDisposition": "inline",
+  "downloadTokens": [
+    "c01601d4-cda3-45a8-b28b-a671cf887996"
+  ],
+  "etag": "47+v6dC3gfiVY9etdU/gw1K2GIQ",
+  "customMetadata": {},
+  "timeCreated": "2026-07-25T17:28:44.071Z",
+  "updated": "2026-07-25T17:28:44.071Z",
+  "size": 6882,
+  "md5Hash": "fn+mSZX5RyfgVWrwrRUmjQ==",
+  "crc32c": "2446705869"
+}

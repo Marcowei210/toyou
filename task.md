@@ -1,0 +1,57 @@
+- `[x]` Install dependencies (`firebase`, `firebase-admin`, `lucide-react`)
+- `[x]` Create Firebase configuration files
+  - `[x]` `firebase.json` for Emulator setup
+  - `[x]` `firestore.rules` for security (blocking access to `/private` subcollections)
+  - `[x]` `storage.rules` for Storage access
+- `[x]` Set up client-side Firebase (`src/lib/firebase.ts`) and Admin SDK (`src/lib/firebase-admin.ts`)
+- `[x]` Write authentication utilities (`src/lib/auth-utils.ts` for hashing)
+- `[x]` Create API routes
+  - `[x]` `POST /api/register`
+  - `[x]` `POST /api/login`
+- `[x]` Create Auth Context with Session Persistence (`src/context/AuthContext.tsx`)
+- `[x]` Develop UI Components and Styling
+  - `[x]` Update `src/app/globals.css` with Detective Noir theme
+  - `[x]` Create `StatusBar.tsx`
+  - `[x]` Create `EvidenceBoard.tsx` (basic mock setup)
+  - `[x]` Update `src/app/page.tsx` with Login/Dashboard flow
+- `[x]` Permission Denied & Session Fallback Fixes
+- `[x]` Avatar System Upgrade (Profile Setup Modal)
+- `[x]` Step 3: Game Master (GM) "God Mode" Dashboard (`/admin`)
+- `[x]` Registration Flow & Firebase Admin Emulator Target Fixes
+- `[x]` `.env.local` Environment Configuration
+- `[x]` Phase 1 (Pre-game) Dashboard Implementation
+- `[x]` Refinements & Upgrades for Phase 1 UI/UX
+- `[x]` Specific Bug Fixes & Bulletin Board Filter Adjustment
+- `[x]` Phase 1 Climax Implementation (D-3, D-2, D-1 & RPG Visual Novel)
+- `[x]` Local Network Testing Bindings & Explicit IP Configuration
+- `[x]` Next.js CrossOrigin HMR Configuration
+- `[x]` New 7-Day Pre-Game Architecture & Auto-Scoring System
+- `[x]` 7 Precise Refinements Implementation
+- `[x]` 5 Specific Bug Fixes Implementation
+- `[x]` D-1 RPG Dialog Box Visual Novel Layout Fix
+- `[x]` 2 Critical Logic & Layout Fixes (Mandatory Avatar Setup & iOS Rubber-Banding)
+- `[x]` Auth Page vs. Internal Dashboard Theme Separation
+- `[x]` Black Outer Background for Login & Register
+- `[x]` Critical Login Failure Logic Restoration
+- `[x]` Error Message Auto-Dismiss (3000ms) & CSS Fade-Out
+- `[x]` Phased Rollout Architecture (D-7 to D-2 Overhaul)
+- `[x]` 3 Critical Mobile UI & Typography Fixes
+- `[x]` Aggressive Global Font Stack Override & Font Size Upgrades
+- `[x]` Top Navigation Bar Single Row Fix
+- `[x]` Bulletin Board Message Input Mobile Width Overflow Fix
+- `[x]` D-7 Quiz Step-by-Step Interactive Flow Overhaul
+- `[x]` Staggered Text Reveal & Global Footer Update
+- `[x]` D-6 Two Distinct Input Fields Per Song Row
+- `[x]` D-6 Form Input State Reset Logic
+- `[x]` Clean UI Point Text Removal from All Submit Buttons
+- `[x]` Avatar Setup Screen Translation & Mobile Layout Overflow Fix
+- `[x]` Vercel Live Deployment Authentication Fix & Non-JSON Handling
+- `[x]` Firebase Admin 3 Separate Environment Variables Overhaul
+- `[x]` Firebase Admin Lazy Initialization Refactor
+- `[x]` Firebase Admin Explicit Try-Catch Error Throwing
+- `[x]` Vercel ESM Module Resolution Fix
+- `[x]` Vercel ESM Sub-dependencies Fix (`jose` & `jwks-rsa`)
+- `[x]` **CommonJS Compatibility Fix for `jose` Sub-dependency**:
+  - `[x]` Confirmed Node.js default runtime (no `export const runtime = 'edge'`) in `/api/login` and `/api/register`.
+  - `[x]` Added `"overrides": { "jose": "4.15.5" }` block in `package.json`.
+  - `[x]` Ran `npm install` to enforce CommonJS-compatible `jose@4.15.5` in `package-lock.json`.
