@@ -65,11 +65,11 @@ export default function UserProfileCard({ user, onOpenAvatarModal }: UserProfile
 
   return (
     <div className="bg-[#E6D5B8] border-2 border-black p-3.5 sm:p-5 md:p-6 rounded shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-row items-center justify-between gap-3 sm:gap-6 font-bold select-none -rotate-1 hover:rotate-0 transition-transform">
-      {/* Left: Avatar + Lv. Badge & Dynamic Title Badge */}
-      <div className="flex flex-col items-center gap-2 shrink-0">
+      {/* Left: Avatar + Lv. Badge & Dynamic Title Badge (Flex column centered) */}
+      <div className="flex flex-col items-center justify-center gap-2 shrink-0 w-24 sm:w-28 text-center">
         <button
           onClick={onOpenAvatarModal}
-          className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-3 sm:border-4 border-black bg-white overflow-hidden flex items-center justify-center cursor-pointer hover:scale-105 transition-transform shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] relative group shrink-0"
+          className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-3 sm:border-4 border-black bg-white overflow-hidden flex items-center justify-center cursor-pointer hover:scale-105 transition-transform shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] relative group shrink-0 mx-auto"
           title="Click to edit Detective Profile Avatar"
         >
           {user.avatarUrl ? (
@@ -77,13 +77,13 @@ export default function UserProfileCard({ user, onOpenAvatarModal }: UserProfile
               <img
                 src={user.avatarUrl.startsWith("<svg") ? `data:image/svg+xml;utf8,${encodeURIComponent(user.avatarUrl)}` : user.avatarUrl}
                 alt="Detective Badge"
-                className="w-full h-full object-contain p-1 bg-white"
+                className="w-full h-full object-contain p-1 bg-white rounded-full"
               />
             ) : (
               <img
                 src={user.avatarUrl}
                 alt="Detective Badge"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover rounded-full"
               />
             )
           ) : (
@@ -91,23 +91,23 @@ export default function UserProfileCard({ user, onOpenAvatarModal }: UserProfile
           )}
 
           {/* Hover overlay with gear icon */}
-          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-full">
             <Settings className="w-5 h-5 text-amber-300 animate-spin" />
           </div>
         </button>
 
         {/* Lv. Badge + Thermometer Progress Bar + Title Badge */}
-        <div className="flex flex-col items-center gap-1 bg-yellow-100 border-2 border-black px-2 py-1.5 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] w-full">
-          <div className="bg-amber-300 border border-black px-2 py-0.2 text-xs sm:text-sm font-black text-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] rounded">
+        <div className="flex flex-col items-center justify-center gap-1 bg-yellow-100 border-2 border-black px-1.5 py-1.5 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] w-full">
+          <div className="bg-amber-300 border border-black px-2 py-0.5 text-xs sm:text-sm font-black text-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] rounded text-center">
             Lv. {levelInfo.level}
           </div>
-          <div className="w-16 sm:w-20 h-2.5 sm:h-3 bg-white border border-black rounded-full overflow-hidden relative shadow-inner">
+          <div className="w-16 sm:w-20 h-2.5 sm:h-3 bg-white border border-black rounded-full overflow-hidden relative shadow-inner mx-auto">
             <div
               className="h-full bg-amber-500 transition-all duration-500 rounded-full"
               style={{ width: `${levelInfo.percent}%` }}
             />
           </div>
-          <span className="text-xs sm:text-sm text-stone-900 font-black text-center truncate max-w-[100px] sm:max-w-[120px] px-1 mt-0.5">
+          <span className="text-xs sm:text-sm text-stone-900 font-black text-center truncate w-full px-1 mt-0.5">
             {currentTitle}
           </span>
         </div>
