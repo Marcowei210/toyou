@@ -65,27 +65,24 @@ export default function UserProfileCard({ user, onOpenAvatarModal }: UserProfile
 
   return (
     <div className="bg-[#E6D5B8] border-2 border-black p-3.5 sm:p-5 md:p-6 rounded shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-row items-center justify-between gap-3 sm:gap-6 font-bold select-none -rotate-1 hover:rotate-0 transition-transform">
-      {/* Left: Avatar + Lv. Badge & Dynamic Title Badge (Flex column centered) */}
+      {/* Left Outer Wrapper: flex flex-col items-center justify-center to horizontally center all children */}
       <div className="flex flex-col items-center justify-center gap-2 shrink-0 w-24 sm:w-28 text-center">
+        {/* Avatar Container: circular button with fixed dimensions, rounded-full, overflow-hidden, relative */}
         <button
           onClick={onOpenAvatarModal}
-          className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-3 sm:border-4 border-black bg-white overflow-hidden flex items-center justify-center cursor-pointer hover:scale-105 transition-transform shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] relative group shrink-0 mx-auto"
+          className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-3 sm:border-4 border-black bg-white overflow-hidden flex items-center justify-center cursor-pointer hover:scale-105 transition-transform shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] relative group shrink-0"
           title="Click to edit Detective Profile Avatar"
         >
           {user.avatarUrl ? (
-            user.avatarUrl.startsWith("<svg") || user.avatarUrl.includes("%3Csvg") ? (
-              <img
-                src={user.avatarUrl.startsWith("<svg") ? `data:image/svg+xml;utf8,${encodeURIComponent(user.avatarUrl)}` : user.avatarUrl}
-                alt="Detective Badge"
-                className="w-full h-full object-contain p-1 bg-white rounded-full"
-              />
-            ) : (
-              <img
-                src={user.avatarUrl}
-                alt="Detective Badge"
-                className="w-full h-full object-cover rounded-full"
-              />
-            )
+            <img
+              src={
+                user.avatarUrl.startsWith("<svg")
+                  ? `data:image/svg+xml;utf8,${encodeURIComponent(user.avatarUrl)}`
+                  : user.avatarUrl
+              }
+              alt="Detective Badge"
+              className="w-full h-full object-cover rounded-full"
+            />
           ) : (
             <User className="w-10 h-10 text-stone-700 group-hover:text-black transition-colors" />
           )}
