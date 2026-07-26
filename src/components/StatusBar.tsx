@@ -65,7 +65,7 @@ export default function StatusBar({ activeTab = "home", onTabChange }: StatusBar
           {/* Avatar Setup Trigger Button */}
           <button
             onClick={() => setIsModalOpen(true)}
-            className="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-black bg-white overflow-hidden flex items-center justify-center cursor-pointer hover:scale-105 transition-transform shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] relative group shrink-0"
+            className="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-black bg-white overflow-hidden flex items-center justify-center cursor-pointer hover:scale-105 transition-transform relative group shrink-0"
             title="Configure Detective Profile Avatar"
           >
             {user.avatarUrl ? (

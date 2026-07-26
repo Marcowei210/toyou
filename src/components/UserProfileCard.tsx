@@ -70,7 +70,7 @@ export default function UserProfileCard({ user, onOpenAvatarModal }: UserProfile
         {/* Avatar Container: circular button with fixed dimensions, rounded-full, overflow-hidden, relative */}
         <button
           onClick={onOpenAvatarModal}
-          className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-3 sm:border-4 border-black bg-white overflow-hidden flex items-center justify-center cursor-pointer hover:scale-105 transition-transform shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] relative group shrink-0"
+          className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-3 sm:border-4 border-black bg-white overflow-hidden flex items-center justify-center cursor-pointer hover:scale-105 transition-transform relative group shrink-0"
           title="Click to edit Detective Profile Avatar"
         >
           {user.avatarUrl ? (
