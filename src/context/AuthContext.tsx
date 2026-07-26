@@ -4,11 +4,13 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { signInAnonymously, signOut } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
+import { getUserTitleByScore } from "@/components/UserProfileCard";
 
 export interface DetectiveUser {
   accountId: string;
   nickname: string;
   score: number;
+  title?: string;
   avatarUrl: string;
   role?: string;
   team?: string;
@@ -59,7 +61,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Set up real-time listener for the user's Firestore document
   const setupRealtimeListener = (accountId: string) => {
-    // Clean up existing listener if any
     if (unsubscribeSnapshot) {
       unsubscribeSnapshot();
     }
@@ -71,11 +72,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (snapshot.exists()) {
           const data = snapshot.data();
           const currentScore = data.score || 0;
+          const currentTitle = data.title || getUserTitleByScore(currentScore);
           
           const updatedUser: DetectiveUser = {
             accountId: data.accountId || accountId,
             nickname: data.nickname || "Detective",
             score: currentScore,
+            title: currentTitle,
             avatarUrl: data.avatarUrl || "",
             role: data.role || "player",
             team: data.team || "Unassigned",
@@ -87,14 +90,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           setUser(updatedUser);
         } else {
-          // Document was wiped or doesn't exist (e.g. emulator restart)
           console.warn(`User document for ${accountId} not found. Clearing session.`);
           logout();
         }
         setLoading(false);
       },
       (error) => {
-        // Handle permission-denied or network errors gracefully by logging out
         console.error("Firestore onSnapshot error, auto-resetting session:", error);
         logout();
       }
@@ -109,7 +110,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const savedAccountId = localStorage.getItem("detectiveAccountId");
         if (savedAccountId) {
-          // Authenticate connection anonymously for firestore rules safety
           try {
             await signInAnonymously(auth);
           } catch (authErr) {
@@ -158,17 +158,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(data.error || "登入失敗");
     }
 
-    // Authenticate anonymously on client
     try {
       await signInAnonymously(auth);
     } catch (e) {
       console.warn("Anonymous auth failed on login:", e);
     }
 
-    // Save session locally
     localStorage.setItem("detectiveAccountId", accountId);
-
-    // Bind real-time Firestore updates
     setupRealtimeListener(accountId);
   };
 
@@ -193,30 +189,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (!res.ok) {
-      // STOP execution immediately if API returns non-200 OK
       throw new Error(data.error || "註冊失敗，該 Account ID 可能已被使用");
     }
 
-    // ONLY after 200 OK response from API, sign in anonymously and set up session
     try {
       await signInAnonymously(auth);
     } catch (e) {
       console.warn("Anonymous auth warning after registration:", e);
     }
 
-    // Save session locally
     localStorage.setItem("detectiveAccountId", accountId);
-
-    // Bind real-time Firestore updates
     setupRealtimeListener(accountId);
   };
 
   const updateScore = async (increment: number) => {
     if (!user) return;
     try {
+      const newScore = (user.score || 0) + increment;
+      const newTitle = getUserTitleByScore(newScore);
       const docRef = doc(db, "users", user.accountId);
       await updateDoc(docRef, {
-        score: user.score + increment,
+        score: newScore,
+        title: newTitle,
       });
     } catch (err) {
       console.error("Failed to update score in real-time:", err);
@@ -262,7 +256,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (rewardPoints > 0) {
-        updates.score = (user.score || 0) + rewardPoints;
+        const newScore = (user.score || 0) + rewardPoints;
+        updates.score = newScore;
+        updates.title = getUserTitleByScore(newScore);
       }
 
       if (taskId === "D-5") {

@@ -83,7 +83,7 @@ export async function POST(request: Request) {
           accountId: userData?.accountId,
           nickname: userData?.nickname,
           score: userData?.score || 0,
-          title: userData?.title || "Novice Detective",
+          title: userData?.title || "那個新來的",
           avatarUrl: userData?.avatarUrl || "",
         },
       },

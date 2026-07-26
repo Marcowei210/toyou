@@ -99,7 +99,7 @@ export async function POST(request: Request) {
         accountId: String(accountId),
         nickname: String(nickname),
         score: 0,
-        title: "Novice Detective",
+        title: "那個新來的",
         avatarUrl: "",
         role: "player",
         team: "Unassigned",

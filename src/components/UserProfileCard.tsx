@@ -36,8 +36,32 @@ export function getLevelInfo(score: number = 0) {
   return { level: 5, current: score, max: 100, percent: 100 };
 }
 
+export function getUserTitleByLevel(level: number = 0): string {
+  switch (level) {
+    case 0:
+      return "那個新來的";
+    case 1:
+      return "那個誰";
+    case 2:
+      return "菜鳥";
+    case 3:
+      return "熟手";
+    case 4:
+      return "太讚了吧";
+    case 5:
+    default:
+      return "站在頂峰的人";
+  }
+}
+
+export function getUserTitleByScore(score: number = 0): string {
+  const { level } = getLevelInfo(score);
+  return getUserTitleByLevel(level);
+}
+
 export default function UserProfileCard({ user, onOpenAvatarModal }: UserProfileCardProps) {
   const levelInfo = getLevelInfo(user.score || 0);
+  const currentTitle = getUserTitleByLevel(levelInfo.level);
 
   return (
     <div className="bg-[#E6D5B8] border-2 border-black p-3.5 sm:p-5 md:p-6 rounded shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-row items-center justify-between gap-3 sm:gap-6 font-bold select-none -rotate-1 hover:rotate-0 transition-transform">
@@ -89,11 +113,16 @@ export default function UserProfileCard({ user, onOpenAvatarModal }: UserProfile
         </div>
       </div>
 
-      {/* Right: Stacked text fields: Name, ID, pt: X */}
+      {/* Right: Stacked text fields: Name, Title, ID, pt */}
       <div className="flex flex-col gap-2 flex-1 min-w-0">
         <div className="bg-yellow-100 border-2 border-black px-3 py-1.5 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] w-full flex items-center justify-between">
           <span className="text-stone-800 text-sm md:text-base font-extrabold mr-1 shrink-0">Name:</span>
           <span className="text-base md:text-lg font-black text-black truncate">{user.nickname}</span>
+        </div>
+
+        <div className="bg-yellow-100 border-2 border-black px-3 py-1.5 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] w-full flex items-center justify-between">
+          <span className="text-stone-800 text-sm md:text-base font-extrabold mr-1 shrink-0">Title:</span>
+          <span className="text-base md:text-lg font-black text-amber-800 truncate">{currentTitle}</span>
         </div>
 
         <div className="bg-yellow-100 border-2 border-black px-3 py-1.5 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] w-full flex items-center justify-between">
