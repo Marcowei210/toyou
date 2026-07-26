@@ -65,7 +65,7 @@ export default function UserProfileCard({ user, onOpenAvatarModal }: UserProfile
 
   return (
     <div className="bg-[#E6D5B8] border-2 border-black p-3.5 sm:p-5 md:p-6 rounded shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-row items-center justify-between gap-3 sm:gap-6 font-bold select-none -rotate-1 hover:rotate-0 transition-transform">
-      {/* Left: Avatar + Lv. Badge & Thermometer */}
+      {/* Left: Avatar + Lv. Badge & Dynamic Title Badge */}
       <div className="flex flex-col items-center gap-2 shrink-0">
         <button
           onClick={onOpenAvatarModal}
@@ -96,8 +96,8 @@ export default function UserProfileCard({ user, onOpenAvatarModal }: UserProfile
           </div>
         </button>
 
-        {/* Lv. Badge + Thermometer Progress Bar */}
-        <div className="flex flex-col items-center gap-1 bg-yellow-100 border-2 border-black px-2 py-1 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] w-full">
+        {/* Lv. Badge + Thermometer Progress Bar + Title Badge */}
+        <div className="flex flex-col items-center gap-1 bg-yellow-100 border-2 border-black px-2 py-1.5 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] w-full">
           <div className="bg-amber-300 border border-black px-2 py-0.2 text-xs sm:text-sm font-black text-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] rounded">
             Lv. {levelInfo.level}
           </div>
@@ -107,22 +107,17 @@ export default function UserProfileCard({ user, onOpenAvatarModal }: UserProfile
               style={{ width: `${levelInfo.percent}%` }}
             />
           </div>
-          <span className="text-[10px] sm:text-xs text-stone-800 font-black">
-            {levelInfo.current}/{levelInfo.max} EXP
+          <span className="text-xs sm:text-sm text-stone-900 font-black text-center truncate max-w-[100px] sm:max-w-[120px] px-1 mt-0.5">
+            {currentTitle}
           </span>
         </div>
       </div>
 
-      {/* Right: Stacked text fields: Name, Title, ID, pt */}
+      {/* Right: Stacked text fields: Name, ID, pt */}
       <div className="flex flex-col gap-2 flex-1 min-w-0">
         <div className="bg-yellow-100 border-2 border-black px-3 py-1.5 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] w-full flex items-center justify-between">
           <span className="text-stone-800 text-sm md:text-base font-extrabold mr-1 shrink-0">Name:</span>
           <span className="text-base md:text-lg font-black text-black truncate">{user.nickname}</span>
-        </div>
-
-        <div className="bg-yellow-100 border-2 border-black px-3 py-1.5 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] w-full flex items-center justify-between">
-          <span className="text-stone-800 text-sm md:text-base font-extrabold mr-1 shrink-0">Title:</span>
-          <span className="text-base md:text-lg font-black text-amber-800 truncate">{currentTitle}</span>
         </div>
 
         <div className="bg-yellow-100 border-2 border-black px-3 py-1.5 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] w-full flex items-center justify-between">
