@@ -551,7 +551,7 @@ export default function DailyMission() {
       <div className="flex items-center justify-between border-b-2 border-black pb-3 gap-2">
         <div className="flex items-center gap-1.5 text-black font-black uppercase tracking-wider text-sm sm:text-base md:text-lg truncate">
           <Calendar className="w-5 h-5 text-black shrink-0" />
-          <span className="truncate">CURRENT STAGE DIRECTIVE // {STAGE_LABELS[currentDay] || currentDay}</span>
+          <span className="truncate">{currentDay} 小任務</span>
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
@@ -1043,7 +1043,7 @@ export default function DailyMission() {
             className="w-full py-4 bg-amber-300 hover:bg-black hover:text-white border-2 border-black text-black font-black uppercase text-base sm:text-lg rounded shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] tracking-widest flex items-center justify-center gap-2 cursor-pointer transition-none active:translate-x-0.5 active:translate-y-0.5"
           >
             <Tv className="w-5 h-5" />
-            <span>開啟 D-1 任務簡報 (Visual Novel)</span>
+            <span>看看發生什麼事了</span>
           </button>
         </div>
       )}
