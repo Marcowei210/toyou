@@ -7,9 +7,21 @@ import {
   validateNickname,
 } from "@/lib/auth-utils";
 
+// Timeout helper to prevent Vercel functions from hanging indefinitely
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number, errorMessage: string): Promise<T> => {
+  let timer: NodeJS.Timeout;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(errorMessage)), timeoutMs);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer));
+};
+
 export async function POST(request: Request) {
   try {
-    const { accountId, password, nickname } = await request.json();
+    const body = await request.json();
+    const accountId = String(body.accountId || "").trim();
+    const password = String(body.password || "").trim();
+    const nickname = String(body.nickname || "").trim();
 
     // 1. Input Validation checks
     if (!accountId || !password || !nickname) {
@@ -40,14 +52,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Query Firestore via firebase-admin lazily to check if Account ID already exists
+    // 2. Query Firestore via firebase-admin lazily
     const db = getAdminDb();
     console.log(`[Register API] Querying Firestore for user document '${accountId}'...`);
-    const userDocRef = db.collection("users").doc(accountId);
+    const userDocRef = db.collection("users").doc(String(accountId));
     
     let userExists = false;
     try {
-      const userDoc = await userDocRef.get();
+      const userDoc = await withTimeout(userDocRef.get(), 6000, "Firestore user lookup timed out");
       userExists = userDoc.exists;
       console.log(`[Register API] Document check for '${accountId}' complete. Exists: ${userExists}`);
     } catch (readErr: any) {
@@ -81,24 +93,27 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Write user profile and credentials to Firestore using .doc(accountId).set({...}, { merge: true })
-    const hashedPassword = hashPassword(password);
+    // 3. Write user profile to Firestore
+    const profilePayload = JSON.parse(
+      JSON.stringify({
+        accountId: String(accountId),
+        nickname: String(nickname),
+        score: 0,
+        title: "Novice Detective",
+        avatarUrl: "",
+        role: "player",
+        team: "Unassigned",
+        isLeader: false,
+        createdAt: new Date().toISOString(),
+      })
+    );
 
     console.log(`[Register API] Executing .doc('${accountId}').set({...}, { merge: true }) for user profile...`);
     try {
-      await userDocRef.set(
-        {
-          accountId,
-          nickname,
-          score: 0,
-          title: "Novice Detective",
-          avatarUrl: "",
-          role: "player",
-          team: "Unassigned",
-          isLeader: false,
-          createdAt: new Date().toISOString(),
-        },
-        { merge: true }
+      await withTimeout(
+        userDocRef.set(profilePayload, { merge: true }),
+        6000,
+        "Firestore profile write timed out"
       );
       console.log(`[Register API] Successfully wrote user profile document for '${accountId}'.`);
     } catch (writeErr: any) {
@@ -116,21 +131,34 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log(`[Register API] Executing .set({...}, { merge: true }) for credentials subcollection...`);
+    // 4. Write credentials subcollection to Firestore with ID string casting & payload sanitization
+    const hashedPassword = hashPassword(password);
+    const credentialsDocRef = db
+      .collection("users")
+      .doc(String(accountId))
+      .collection("private")
+      .doc("credentials");
+
+    const credentialsPayload = JSON.parse(
+      JSON.stringify({
+        passwordHash: String(hashedPassword || ""),
+        updatedAt: new Date().toISOString(),
+      })
+    );
+
+    console.log(`[Register API] Executing .set({...}, { merge: true }) for credentials subcollection of '${accountId}'...`);
     try {
-      const credentialsDocRef = userDocRef.collection("private").doc("credentials");
-      await credentialsDocRef.set(
-        {
-          passwordHash: hashedPassword,
-          updatedAt: new Date().toISOString(),
-        },
-        { merge: true }
+      await withTimeout(
+        credentialsDocRef.set(credentialsPayload, { merge: true }),
+        6000,
+        "Firestore credentials subcollection write timed out"
       );
       console.log(`[Register API] Successfully wrote credentials subcollection for '${accountId}'.`);
     } catch (credErr: any) {
-      console.error(`[Register API Error] Failed to write credentials for '${accountId}':`, credErr);
+      console.error("[Register API Error] Credential write error:", credErr);
+      const msg = credErr?.message || String(credErr);
       return NextResponse.json(
-        { error: `Failed to create credentials record: ${credErr.message || credErr}` },
+        { error: `Failed to create credentials record: ${msg}` },
         { status: 500 }
       );
     }
