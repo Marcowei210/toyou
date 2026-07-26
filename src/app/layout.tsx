@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "The Bureau // Classified Archives",
-  description: "Secure, real-time case files and detective registry.",
+  title: "Let's toast together!",
+  description: "GoGoGo",
 };
 
 export default function RootLayout({
