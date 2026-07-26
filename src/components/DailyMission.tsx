@@ -11,8 +11,7 @@ import {
   where,
   updateDoc,
 } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db, storage } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import RPGDialogBox from "@/components/RPGDialogBox";
 import {
   Calendar,
@@ -332,43 +331,50 @@ export default function DailyMission() {
 
     setSubmitting(true);
     try {
-      const randomId = Math.random().toString(36).substring(2, 8);
-      const storageRef = ref(storage, `evidence/${user.accountId}/${randomId}_${photoFile.name}`);
-      await uploadBytes(storageRef, photoFile);
-      const downloadUrl = await getDownloadURL(storageRef);
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        try {
+          const base64DataUrl = reader.result as string;
 
-      await addDoc(collection(db, "submissions"), {
-        accountId: user.accountId,
-        imageUrl: downloadUrl,
-        note: `[Task D-5 Photo]: ${photoNote.trim()}`,
-        day: "D-5",
-        status: "pending",
-        createdAt: new Date().toISOString(),
-      });
+          await addDoc(collection(db, "submissions"), {
+            accountId: user.accountId,
+            imageUrl: base64DataUrl,
+            note: `[Task D-5 Photo]: ${photoNote.trim()}`,
+            day: "D-5",
+            status: "pending",
+            createdAt: new Date().toISOString(),
+          });
 
-      const currentCount = user.d5UploadCount || 0;
-      let ptsToAward = 0;
-      if (currentCount === 0) ptsToAward = 3;
-      else if (currentCount === 1) ptsToAward = 1;
-      else ptsToAward = 0;
+          const currentCount = user.d5UploadCount || 0;
+          let ptsToAward = 0;
+          if (currentCount === 0) ptsToAward = 3;
+          else if (currentCount === 1) ptsToAward = 1;
+          else ptsToAward = 0;
 
-      await completeTaskAndReward("D-5", ptsToAward);
+          await completeTaskAndReward("D-5", ptsToAward);
 
-      setPhotoFile(null);
-      setPhotoNote("");
-      const inputEl = document.getElementById("d5-photo-input") as HTMLInputElement;
-      if (inputEl) inputEl.value = "";
+          setPhotoFile(null);
+          setPhotoNote("");
+          const inputEl = document.getElementById("d5-photo-input") as HTMLInputElement;
+          if (inputEl) inputEl.value = "";
 
-      setFeedback(
-        ptsToAward > 0
-          ? `照片上傳成功！獲得 +${ptsToAward} pt！`
-          : "照片上傳成功！"
-      );
-      setTimeout(() => setFeedback(null), 5000);
+          setFeedback(
+            ptsToAward > 0
+              ? `照片上傳成功！獲得 +${ptsToAward} pt！`
+              : "照片上傳成功！"
+          );
+          setTimeout(() => setFeedback(null), 5000);
+        } catch (err) {
+          console.error("D-5 submit error:", err);
+          alert("Submission failed.");
+        } finally {
+          setSubmitting(false);
+        }
+      };
+      reader.readAsDataURL(photoFile);
     } catch (err) {
       console.error("D-5 Photo submit error:", err);
       alert("Photo submission failed.");
-    } finally {
       setSubmitting(false);
     }
   };

@@ -3,8 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { collection, addDoc, query, orderBy, onSnapshot } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db, storage } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import { FileText, Camera, Upload, Trash, Plus, Minus, Search } from "lucide-react";
 
 interface EvidenceItem {
@@ -53,15 +52,6 @@ export default function EvidenceBoard() {
 
   if (!user) return null;
 
-  // Manual Score Adjustments (for testing real-time synchronization)
-  const handleScoreChange = async (amount: number) => {
-    try {
-      await updateScore(amount);
-    } catch (err) {
-      alert("Failed to update score. Emulators running?");
-    }
-  };
-
   // Submit Detective Clue Riddle (riddle game mechanic)
   const handleSolveRiddle = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,36 +68,39 @@ export default function EvidenceBoard() {
     setTimeout(() => setRiddleFeedback(""), 4000);
   };
 
-  // Upload Case Evidence
+  // Upload Case Evidence via Base64 Data URL to bypass Firebase Storage
   const handleEvidenceUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file || !note.trim()) return;
 
     setUploading(true);
     try {
-      // 1. Upload to Firebase Storage
-      const randomId = Math.random().toString(36).substring(2, 9);
-      const storageRef = ref(storage, `evidence/${user.accountId}/${randomId}_${file.name}`);
-      await uploadBytes(storageRef, file);
-      const downloadUrl = await getDownloadURL(storageRef);
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        try {
+          const base64DataUrl = reader.result as string;
 
-      // 2. Add document record to user's evidence subcollection in Firestore
-      await addDoc(collection(db, "users", user.accountId, "evidence"), {
-        url: downloadUrl,
-        note: note.trim(),
-        createdAt: new Date().toISOString(),
-      });
+          await addDoc(collection(db, "users", user.accountId, "evidence"), {
+            url: base64DataUrl,
+            note: note.trim(),
+            createdAt: new Date().toISOString(),
+          });
 
-      setNote("");
-      setFile(null);
-      // Reset file input in DOM
-      const fileInput = document.getElementById("evidence-file") as HTMLInputElement;
-      if (fileInput) fileInput.value = "";
-
+          setNote("");
+          setFile(null);
+          const fileInput = document.getElementById("evidence-file") as HTMLInputElement;
+          if (fileInput) fileInput.value = "";
+        } catch (err) {
+          console.error("Evidence upload error:", err);
+          alert("Failed to pin evidence file.");
+        } finally {
+          setUploading(false);
+        }
+      };
+      reader.readAsDataURL(file);
     } catch (error) {
-      console.error("Evidence upload error:", error);
-      alert("Failed to upload evidence. Ensure Firebase Storage and Firestore emulators are active.");
-    } finally {
+      console.error("Evidence read error:", error);
+      alert("Failed to read file.");
       setUploading(false);
     }
   };
@@ -118,8 +111,6 @@ export default function EvidenceBoard() {
       {/* LEFT COLUMN: Controls & Interactive Game Tests */}
       <div className="w-full md:w-1/3 flex flex-col gap-6">
         
-
-
         {/* Detective Riddle (Score Rewards) */}
         <section className="bg-[#1b1a18] border border-[#38342e] p-4 rounded-sm flex flex-col gap-3">
           <h2 className="text-sm font-bold uppercase tracking-wider text-amber-500 border-b border-[#38342e] pb-1.5 flex items-center gap-1.5">
@@ -154,7 +145,7 @@ export default function EvidenceBoard() {
           )}
         </section>
 
-        {/* Evidence Uploader (Storage Testing) */}
+        {/* Evidence Uploader */}
         <section className="bg-[#1b1a18] border border-[#38342e] p-4 rounded-sm flex flex-col gap-3">
           <h2 className="text-sm font-bold uppercase tracking-wider text-amber-500 border-b border-[#38342e] pb-1.5 flex items-center gap-1.5">
             <Camera className="w-4 h-4" />

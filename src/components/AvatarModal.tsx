@@ -2,8 +2,6 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { storage } from "@/lib/firebase";
 import { X, Paintbrush, Eraser, Trash2, UploadCloud, Sparkles, Check } from "lucide-react";
 
 interface AvatarModalProps {
@@ -54,7 +52,7 @@ export default function AvatarModal({ isOpen, onClose, isForced }: AvatarModalPr
       // If user has an existing avatarUrl, load and draw it onto the canvas
       if (user?.avatarUrl) {
         const img = new Image();
-        img.crossOrigin = "anonymous"; // CRITICAL: prevents tainted canvas errors when exporting
+        img.crossOrigin = "anonymous";
         img.onload = () => {
           if (canvasRef.current) {
             const currentCtx = canvasRef.current.getContext("2d");
@@ -129,28 +127,21 @@ export default function AvatarModal({ isOpen, onClose, isForced }: AvatarModalPr
     ctx.moveTo(x, y);
   };
 
+  // Convert Canvas directly to Base64 Data URL to bypass Firebase Storage
   const handleSaveDrawing = async () => {
     if (!canvasRef.current) return;
     setUploading(true);
 
-    canvasRef.current.toBlob(async (blob) => {
-      if (!blob) {
-        setUploading(false);
-        return;
-      }
-      try {
-        const fileRef = ref(storage, `avatars/${user.accountId}`);
-        await uploadBytes(fileRef, blob, { contentType: "image/png" });
-        const downloadUrl = await getDownloadURL(fileRef);
-        await updateAvatar(downloadUrl);
-        onClose();
-      } catch (err) {
-        console.error("Failed to upload drawing:", err);
-        alert("儲存大頭照失敗，請確認 Firebase Storage 服务已開啟。");
-      } finally {
-        setUploading(false);
-      }
-    }, "image/png");
+    try {
+      const base64DataUrl = canvasRef.current.toDataURL("image/png");
+      await updateAvatar(base64DataUrl);
+      onClose();
+    } catch (err) {
+      console.error("Failed to save drawing avatar:", err);
+      alert("儲存大頭照失敗，請再試一次。");
+    } finally {
+      setUploading(false);
+    }
   };
 
   // --- UPLOAD TAB HANDLERS ---
@@ -164,20 +155,29 @@ export default function AvatarModal({ isOpen, onClose, isForced }: AvatarModalPr
     }
   };
 
+  // Convert uploaded image directly to Base64 Data URL to bypass Firebase Storage
   const handleApplyUpload = async () => {
     if (!selectedFile) return;
     setUploading(true);
 
     try {
-      const fileRef = ref(storage, `avatars/${user.accountId}`);
-      await uploadBytes(fileRef, selectedFile);
-      const downloadUrl = await getDownloadURL(fileRef);
-      await updateAvatar(downloadUrl);
-      onClose();
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        try {
+          const base64DataUrl = reader.result as string;
+          await updateAvatar(base64DataUrl);
+          onClose();
+        } catch (err) {
+          console.error("Upload save error:", err);
+          alert("儲存圖片失敗，請再試一次。");
+        } finally {
+          setUploading(false);
+        }
+      };
+      reader.readAsDataURL(selectedFile);
     } catch (err) {
       console.error("Upload error:", err);
-      alert("上傳圖片失敗，請再試一次。");
-    } finally {
+      alert("讀取圖片失敗，請再試一次。");
       setUploading(false);
     }
   };
@@ -250,7 +250,7 @@ export default function AvatarModal({ isOpen, onClose, isForced }: AvatarModalPr
 
             {/* Drawing Tools & EXACT 8-Color Palette */}
             <div className="w-full flex flex-col gap-3 max-w-full box-border">
-              {/* Color Palette (EXACTLY: Red, Blue, Green, Black, Yellow, Orange, Purple, White) */}
+              {/* Color Palette */}
               <div className="w-full">
                 <label className="block text-xs text-stone-800 font-extrabold mb-1.5 text-center">
                   選擇顏色 (8 Colors)
@@ -281,7 +281,7 @@ export default function AvatarModal({ isOpen, onClose, isForced }: AvatarModalPr
                 </div>
               </div>
 
-              {/* Tool Controls (Brush, Eraser, Clear, Size) with Flex-Wrap & Responsive Width Fix */}
+              {/* Tool Controls */}
               <div className="flex flex-wrap items-center justify-between gap-2 border-t-2 border-black pt-3 w-full max-w-full box-border">
                 <div className="flex flex-wrap gap-2">
                   <button
@@ -312,7 +312,7 @@ export default function AvatarModal({ isOpen, onClose, isForced }: AvatarModalPr
                   </button>
                 </div>
 
-                {/* Brush Size Slider with max-width fix */}
+                {/* Brush Size Slider */}
                 <div className="flex items-center gap-1.5 shrink-0">
                   <span className="text-xs md:text-sm font-extrabold text-black">大小:</span>
                   <input
