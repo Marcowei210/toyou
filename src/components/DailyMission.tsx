@@ -41,6 +41,25 @@ export interface WorryDoc {
   createdAt: string;
 }
 
+// Stage display name dictionary
+const STAGE_LABELS: Record<string, string> = {
+  "D-7": "D-7: QA & 登入",
+  "D-6": "D-6: 音樂推推",
+  "D-5": "D-5: picture",
+  "D-4": "D-4: bulletin",
+  "D-3": "D-3: bottle+routing",
+  "D-2": "D-2: 回覆bottle+下次許願",
+  "D-1": "D-1: 收到回覆+播放劇情",
+};
+
+// Helper to clean message text (removes [Task D-X ...]: prefixes and wrapping quotes)
+const cleanPostText = (rawText?: string) => {
+  if (!rawText) return "";
+  let cleaned = rawText.replace(/^\[[^\]]+\]:\s*/i, "");
+  cleaned = cleaned.trim().replace(/^["'\u201c\u201d]+|["'\u201c\u201d]+$/g, "");
+  return cleaned;
+};
+
 export default function DailyMission() {
   const { user, completeTaskAndReward } = useAuth();
   const [currentDay, setCurrentDay] = useState<string>("D-7");
@@ -48,7 +67,7 @@ export default function DailyMission() {
   const [feedback, setFeedback] = useState<string | null>(null);
 
   // --- D-7 TRIVIA STEP-BY-STEP STATE ---
-  const [d7QuestionIndex, setD7QuestionIndex] = useState(0); // 0, 1, 2
+  const [d7QuestionIndex, setD7QuestionIndex] = useState(0);
   const [d7SelectedAnswer, setD7SelectedAnswer] = useState("");
   const [d7FeedbackCard, setD7FeedbackCard] = useState<{ text: string; isCorrect: boolean } | null>(null);
   const [d7TotalPoints, setD7TotalPoints] = useState(0);
@@ -228,7 +247,25 @@ export default function DailyMission() {
 
   if (!user) return null;
 
+  // Completion / Submission lock flags
   const isD7Completed = user.completedTasks?.includes("D-7");
+
+  const isD3Submitted = Boolean(
+    (user as any).hasSubmittedBottle ||
+    (user as any).hasSubmittedD3 ||
+    user.completedTasks?.includes("D-3")
+  );
+
+  const isD2ReplySubmitted = Boolean(
+    (user as any).hasSubmittedReply ||
+    (user as any).hasSubmittedD2Reply ||
+    user.completedTasks?.includes("D-2-part1")
+  );
+
+  const isD2WishSubmitted = Boolean(
+    (user as any).hasSubmittedD2Wish ||
+    user.completedTasks?.includes("D-2-part2")
+  );
 
   // --- D-7 QUESTION SUBMIT HANDLER ---
   const handleD7QuestionSubmit = (e: React.FormEvent) => {
@@ -263,7 +300,6 @@ export default function DailyMission() {
     if (d7QuestionIndex < 2) {
       setD7QuestionIndex((prev) => prev + 1);
     } else {
-      // Final question answered & feedback dismissed -> Award total points & lock task!
       setSubmitting(true);
       try {
         await completeTaskAndReward("D-7", d7TotalPoints);
@@ -311,9 +347,7 @@ export default function DailyMission() {
       const isFirst = !user.completedTasks?.includes("D-6");
       await completeTaskAndReward("D-6", isFirst ? 3 : 0);
 
-      // Reset input fields back to initial state immediately
       setSongItems([{ songName: "", artist: "" }]);
-
       setFeedback(isFirst ? "音樂推薦成功送出！獲得 +3 pt！" : "音樂推薦已更新！");
       setTimeout(() => setFeedback(null), 5000);
     } catch (err) {
@@ -347,7 +381,7 @@ export default function DailyMission() {
       await addDoc(collection(db, "submissions"), {
         accountId: user.accountId,
         imageUrl: data.url,
-        note: `[Task D-5 Photo]: ${photoNote.trim()}`,
+        note: photoNote.trim() ? photoNote.trim() : "分享的照片",
         day: "D-5",
         status: "pending",
         createdAt: new Date().toISOString(),
@@ -387,7 +421,7 @@ export default function DailyMission() {
 
     setSubmitting(true);
     try {
-      const authorName = d4IsAnonymous ? "Anonymous Agent" : user.nickname;
+      const authorName = d4IsAnonymous ? "匿名" : user.nickname;
       const authorId = d4IsAnonymous ? "anonymous" : user.accountId;
       const avatarUrl = d4IsAnonymous ? "" : (user.avatarUrl || "");
 
@@ -416,10 +450,10 @@ export default function DailyMission() {
     }
   };
 
-  // --- D-3 SECRET WORRY SUBMIT ---
+  // --- D-3 SECRET WORRY SUBMIT (ONE-TIME LOCK) ---
   const handleD3Submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!d3WorryText.trim()) return;
+    if (!d3WorryText.trim() || isD3Submitted) return;
 
     setSubmitting(true);
     try {
@@ -431,10 +465,15 @@ export default function DailyMission() {
         createdAt: new Date().toISOString(),
       });
 
+      // Write boolean flags to Firestore user document
+      await updateDoc(doc(db, "users", user.accountId), {
+        hasSubmittedBottle: true,
+        hasSubmittedD3: true,
+      });
+
       const isFirst = !user.completedTasks?.includes("D-3");
       await completeTaskAndReward("D-3", isFirst ? 3 : 0);
 
-      setD3WorryText("");
       setFeedback(isFirst ? "小秘密已投入漂流瓶！獲得 +3 pt！" : "小秘密已投入漂流瓶！");
       setTimeout(() => setFeedback(null), 5000);
     } catch (err) {
@@ -445,10 +484,10 @@ export default function DailyMission() {
     }
   };
 
-  // --- D-2 PART 1: REPLY TO BOTTLE ---
+  // --- D-2 REPLY SUBMIT (ONE-TIME LOCK) ---
   const handleD2ReplySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!assignedWorry || !d2ReplyText.trim()) return;
+    if (!assignedWorry || !d2ReplyText.trim() || isD2ReplySubmitted) return;
 
     setSubmitting(true);
     try {
@@ -456,10 +495,14 @@ export default function DailyMission() {
         replyText: d2ReplyText.trim(),
       });
 
+      await updateDoc(doc(db, "users", user.accountId), {
+        hasSubmittedReply: true,
+        hasSubmittedD2Reply: true,
+      });
+
       const isFirst = !user.completedTasks?.includes("D-2-part1");
       await completeTaskAndReward("D-2-part1", isFirst ? 3 : 0);
 
-      setD2ReplyText("");
       setFeedback(isFirst ? "漂流瓶回覆已傳送！獲得 +3 pt！" : "漂流瓶回覆已傳送！");
       setTimeout(() => setFeedback(null), 5000);
     } catch (err) {
@@ -470,10 +513,10 @@ export default function DailyMission() {
     }
   };
 
-  // --- D-2 PART 2: NEXT EVENT ---
+  // --- D-2 NEXT EVENT SUBMIT (ONE-TIME LOCK) ---
   const handleD2NextEventSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!d2NextEventText.trim()) return;
+    if (!d2NextEventText.trim() || isD2WishSubmitted) return;
 
     setSubmitting(true);
     try {
@@ -485,10 +528,13 @@ export default function DailyMission() {
         createdAt: new Date().toISOString(),
       });
 
+      await updateDoc(doc(db, "users", user.accountId), {
+        hasSubmittedD2Wish: true,
+      });
+
       const isFirst = !user.completedTasks?.includes("D-2-part2");
       await completeTaskAndReward("D-2-part2", isFirst ? 3 : 0);
 
-      setD2NextEventText("");
       setFeedback(isFirst ? "下次活動許願已送出！獲得 +3 pt！" : "下次活動許願已送出！");
       setTimeout(() => setFeedback(null), 5000);
     } catch (err) {
@@ -505,7 +551,7 @@ export default function DailyMission() {
       <div className="flex items-center justify-between border-b-2 border-black pb-3 gap-2">
         <div className="flex items-center gap-1.5 text-black font-black uppercase tracking-wider text-sm sm:text-base md:text-lg truncate">
           <Calendar className="w-5 h-5 text-black shrink-0" />
-          <span className="truncate">CURRENT STAGE DIRECTIVE // {currentDay}</span>
+          <span className="truncate">CURRENT STAGE DIRECTIVE // {STAGE_LABELS[currentDay] || currentDay}</span>
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
@@ -521,171 +567,151 @@ export default function DailyMission() {
         </div>
       </div>
 
-      {/* Global Feedback Banner */}
+      {/* Global Task Feedback Alert */}
       {feedback && (
-        <div className="p-3 bg-yellow-200 border-2 border-black rounded text-xs sm:text-sm text-black font-extrabold whitespace-pre-line shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-          {feedback}
+        <div className="bg-amber-300 border-2 border-black text-black p-3 rounded font-black text-base flex items-center gap-2 animate-bounce shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+          <CheckCircle2 className="w-5 h-5 text-black shrink-0" />
+          <span>{feedback}</span>
         </div>
       )}
 
-      {/* --- DAY D-7: TRIVIA (STEP-BY-STEP INTERACTIVE FLOW) --- */}
+      {/* --- DAY D-7: QA & 登入 (TRIVIA) --- */}
       {currentDay === "D-7" && (
         <div className="flex flex-col gap-4">
-          {/* Completed and Locked State */}
-          {isD7Completed ? (
-            <div className="p-4 bg-amber-200 border-2 border-black text-base md:text-lg text-black font-extrabold rounded flex items-center gap-2.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-              <Lock className="w-6 h-6 text-black shrink-0" />
-              <span>此問答已完成並鎖定！</span>
+          <div className="bg-white border-2 border-black p-4 rounded text-black flex flex-col gap-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+            <div className="flex items-center justify-between">
+              <span className="text-black font-black uppercase flex items-center gap-1.5 text-base md:text-lg">
+                <HelpCircle className="w-5 h-5 text-black" /> 【D-7 吐遊知識問答】
+              </span>
+              <span className="text-xs font-black text-stone-800 bg-yellow-200 border-2 border-black px-2 py-0.5 rounded">
+                進度: {d7QuestionIndex + 1} / 3
+              </span>
             </div>
-          ) : d7FeedbackCard ? (
-            /* Immediate Feedback View for current question */
-            <div className="bg-white border-2 border-black p-5 rounded flex flex-col gap-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-black">
-              <div className="flex items-center justify-between text-base md:text-lg font-black border-b-2 border-black pb-2">
-                <span className="flex items-center gap-2 text-black">
-                  <Sparkles className="w-5 h-5 text-amber-500" /> 【第 {d7QuestionIndex + 1} 題答題結果】
-                </span>
-                <span className="text-xs bg-amber-300 border border-black px-2 py-0.5 rounded font-black">
-                  {d7FeedbackCard.isCorrect ? "+1 pt 獲得!" : "+0 pt"}
+            <p className="leading-relaxed text-stone-900 font-extrabold text-base sm:text-lg md:text-xl">
+              {d7Questions[d7QuestionIndex].question}
+            </p>
+          </div>
+
+          <form onSubmit={handleD7QuestionSubmit} className="flex flex-col gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {d7Questions[d7QuestionIndex].options.map((opt) => (
+                <label
+                  key={opt.id}
+                  className={`border-2 border-black p-3.5 rounded flex items-center gap-3 cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-none ${
+                    d7SelectedAnswer === opt.id
+                      ? "bg-amber-300 text-black font-black"
+                      : "bg-white text-stone-900 hover:bg-yellow-100"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="d7-quiz"
+                    value={opt.id}
+                    checked={d7SelectedAnswer === opt.id}
+                    onChange={(e) => setD7SelectedAnswer(e.target.value)}
+                    disabled={isD7Completed || !!d7FeedbackCard}
+                    className="accent-black w-5 h-5 cursor-pointer shrink-0"
+                  />
+                  <span className="text-base sm:text-lg font-black">{opt.id}. {opt.text}</span>
+                </label>
+              ))}
+            </div>
+
+            {!d7FeedbackCard && (
+              <button
+                type="submit"
+                disabled={!d7SelectedAnswer || isD7Completed}
+                className="w-full py-3 bg-amber-300 hover:bg-black hover:text-white border-2 border-black text-black font-extrabold uppercase text-lg rounded tracking-wider flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-none"
+              >
+                <Check className="w-5 h-5" />
+                <span>{isD7Completed ? "問答已完成" : "送出答案"}</span>
+              </button>
+            )}
+          </form>
+
+          {/* Answer Feedback Modal / Card */}
+          {d7FeedbackCard && (
+            <div className="bg-yellow-50 border-2 border-black p-4 rounded text-black flex flex-col gap-3 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] animate-fadeIn">
+              <div className="flex items-center gap-2 border-b-2 border-black pb-2">
+                <Sparkles className="w-5 h-5 text-black shrink-0" />
+                <span className="font-extrabold text-base sm:text-lg text-black">
+                  {d7FeedbackCard.isCorrect ? "回答正確！" : "回答記錄"}
                 </span>
               </div>
 
-              <div className={`p-4 border-2 border-black rounded text-base md:text-lg font-bold leading-relaxed shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex flex-col gap-1.5 min-h-[90px] ${
-                d7FeedbackCard.isCorrect ? "bg-amber-100 text-stone-900" : "bg-yellow-50 text-stone-900"
-              }`}>
+              <div className="text-base sm:text-lg font-extrabold text-stone-900 leading-relaxed space-y-1.5">
                 {d7FeedbackCard.text.split("\n").slice(0, d7VisibleLinesCount).map((line, idx) => (
-                  <p key={idx} className="typewriter-fade">
-                    {line}
-                  </p>
+                  <p key={idx} className="animate-fadeIn">{line}</p>
                 ))}
               </div>
 
               <button
-                type="button"
                 onClick={handleD7NextStep}
                 disabled={submitting}
-                className="w-full py-3 bg-amber-300 hover:bg-black hover:text-white border-2 border-black text-black font-extrabold uppercase text-lg rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-none active:translate-x-0.5 active:translate-y-0.5 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full mt-2 py-3 bg-amber-300 hover:bg-black hover:text-white border-2 border-black text-black font-extrabold uppercase text-lg rounded tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-none"
               >
-                <Send className="w-5 h-5" />
-                <span>{submitting ? "完成中..." : d7QuestionIndex < 2 ? "下一題" : "完成問答"}</span>
+                <span>{d7QuestionIndex < 2 ? "下一題 →" : "完成 Q&A 任務"}</span>
               </button>
             </div>
-          ) : (
-            /* Single Question View (1 Question at a time) */
-            <form onSubmit={handleD7QuestionSubmit} className="flex flex-col gap-4">
-              <div className="bg-white border-2 border-black p-4 rounded text-black flex flex-col gap-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                <div className="flex items-center justify-between text-base md:text-lg font-extrabold">
-                  <span className="flex items-center gap-1.5 text-black">
-                    <HelpCircle className="w-5 h-5 text-black" /> 【D-7 吐遊問答】
-                  </span>
-                  <span className="bg-amber-300 border-2 border-black px-2.5 py-0.5 rounded text-sm font-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
-                    第 {d7QuestionIndex + 1} / 3 題
-                  </span>
-                </div>
-                <p className="leading-relaxed text-stone-800 font-bold text-base md:text-lg">
-                  請回答以下問題，答對可獲得 <strong>+1 pt</strong>（僅限 1 次答題機會）。
-                </p>
-              </div>
-
-              <div className="bg-yellow-50 p-4 border-2 border-black rounded flex flex-col gap-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                <p className="text-base md:text-lg font-extrabold text-black">
-                  {d7Questions[d7QuestionIndex].question}
-                </p>
-                <div className="grid grid-cols-2 gap-2.5 text-base md:text-lg">
-                  {d7Questions[d7QuestionIndex].options.map((opt) => (
-                    <label
-                      key={opt.id}
-                      className={`flex items-center gap-2 p-2.5 rounded border-2 border-black cursor-pointer bg-white ${
-                        d7SelectedAnswer === opt.id ? "bg-amber-300 font-black" : "hover:bg-yellow-100"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name={`d7-q${d7QuestionIndex}`}
-                        value={opt.id}
-                        checked={d7SelectedAnswer === opt.id}
-                        onChange={(e) => setD7SelectedAnswer(e.target.value)}
-                        className="accent-black cursor-pointer w-4 h-4"
-                      />
-                      <span>{opt.id}. {opt.text}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={!d7SelectedAnswer}
-                className="w-full py-3 bg-amber-300 hover:bg-black hover:text-white border-2 border-black text-black font-extrabold uppercase text-lg rounded tracking-wider flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-none"
-              >
-                <Send className="w-5 h-5" />
-                <span>送出回答</span>
-              </button>
-            </form>
           )}
         </div>
       )}
 
-      {/* --- DAY D-6: MUSIC (TWO DISTINCT INPUT FIELDS PER ROW) --- */}
+      {/* --- DAY D-6: 音樂推推 (DYNAMIC MULTIPLE SONGS) --- */}
       {currentDay === "D-6" && (
         <form onSubmit={handleD6Submit} className="flex flex-col gap-4">
           <div className="bg-white border-2 border-black p-4 rounded text-black flex flex-col gap-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
             <span className="text-black font-extrabold uppercase flex items-center gap-1.5 text-base md:text-lg">
-              <Music className="w-5 h-5 text-black" /> 【D-6 音樂推薦】
+              <Music className="w-5 h-5 text-black" /> 【D-6 音樂推推】
             </span>
             <p className="leading-relaxed text-stone-800 font-bold text-base md:text-lg">
-              準備登入吐遊，肯定要準備好心情吧？或是讓我知道你的心情，首先就是來個一二三四五首，現在！正在聽的音樂！或是想推薦個的~最好是在YouTube or Spotify 找得到的啦，以上，就是今天的任務(ﾉﾟ0ﾟ)ﾉ→
+              六六大順，今天的小任務是推薦一到五首歌給探員夥伴們吧！請分別填寫歌名與歌手/樂團。
             </p>
           </div>
 
           <div className="flex flex-col gap-3">
-            {songItems.map((item, idx) => (
-              <div
-                key={idx}
-                className="bg-yellow-50 p-3 border-2 border-black rounded shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] flex flex-col sm:flex-row items-center gap-2.5 w-full"
-              >
-                <span className="text-xs md:text-sm font-black text-stone-700 shrink-0 self-start sm:self-center">
-                  #{idx + 1}
+            {songItems.map((item, index) => (
+              <div key={index} className="flex flex-col md:flex-row items-stretch md:items-center gap-2 bg-yellow-50 p-3 border-2 border-black rounded shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                <span className="text-sm font-black text-black shrink-0 w-8">
+                  #{index + 1}
                 </span>
 
-                {/* Field 1: Song Name */}
                 <input
                   type="text"
                   value={item.songName}
-                  onChange={(e) => handleSongFieldChange(idx, "songName", e.target.value)}
+                  onChange={(e) => handleSongFieldChange(index, "songName", e.target.value)}
                   placeholder="歌名 (Song Name)"
-                  className="flex-1 w-full bg-white border-2 border-black rounded px-3.5 py-2.5 text-base md:text-lg text-black placeholder:text-stone-500 font-bold focus:outline-none focus:bg-yellow-100"
+                  className="flex-1 bg-white border-2 border-black rounded px-3 py-2 text-base text-black placeholder:text-stone-500 font-bold focus:outline-none focus:bg-yellow-100"
                 />
 
-                {/* Field 2: Artist */}
                 <input
                   type="text"
                   value={item.artist}
-                  onChange={(e) => handleSongFieldChange(idx, "artist", e.target.value)}
+                  onChange={(e) => handleSongFieldChange(index, "artist", e.target.value)}
                   placeholder="歌手 / 樂團 (Artist)"
-                  className="flex-1 w-full bg-white border-2 border-black rounded px-3.5 py-2.5 text-base md:text-lg text-black placeholder:text-stone-500 font-bold focus:outline-none focus:bg-yellow-100"
+                  className="flex-1 bg-white border-2 border-black rounded px-3 py-2 text-base text-black placeholder:text-stone-500 font-bold focus:outline-none focus:bg-yellow-100"
                 />
 
                 {songItems.length > 1 && (
                   <button
                     type="button"
-                    onClick={() => handleRemoveSongRow(idx)}
-                    className="p-2.5 bg-red-200 hover:bg-black hover:text-white border-2 border-black text-black rounded cursor-pointer shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] shrink-0 transition-none self-end sm:self-center"
-                    title="刪除此歌曲列"
+                    onClick={() => handleRemoveSongRow(index)}
+                    className="p-2 border-2 border-black bg-red-200 hover:bg-black hover:text-white text-black rounded cursor-pointer shrink-0 transition-none"
+                    title="移除此歌曲"
                   >
-                    <Trash2 className="w-5 h-5" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 )}
               </div>
             ))}
 
-            {/* "+" Add Song Button */}
             <button
               type="button"
               onClick={handleAddSongRow}
-              className="w-full py-2.5 bg-yellow-100 hover:bg-amber-200 border-2 border-black border-dashed text-black font-extrabold text-base md:text-lg rounded flex items-center justify-center gap-2 cursor-pointer shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-none"
+              className="w-full py-2 bg-yellow-200 hover:bg-amber-300 border-2 border-black text-black font-extrabold text-base rounded flex items-center justify-center gap-1.5 cursor-pointer shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-none"
             >
-              <Plus className="w-5 h-5" />
-              <span>新增下一首歌曲推薦 (+)</span>
+              <Plus className="w-4 h-4" />
+              <span>新增一首推薦歌曲 (+)</span>
             </button>
           </div>
 
@@ -700,7 +726,7 @@ export default function DailyMission() {
         </form>
       )}
 
-      {/* --- DAY D-5: PHOTOS (MAX 3) --- */}
+      {/* --- DAY D-5: PICTURE (PHOTOS) --- */}
       {currentDay === "D-5" && (
         <form onSubmit={handleD5PhotoSubmit} className="flex flex-col gap-4">
           <div className="bg-white border-2 border-black p-4 rounded text-black flex flex-col gap-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
@@ -755,7 +781,7 @@ export default function DailyMission() {
         </form>
       )}
 
-      {/* --- DAY D-4: BOARD UNLOCK --- */}
+      {/* --- DAY D-4: BULLETIN --- */}
       {currentDay === "D-4" && (
         <form onSubmit={handleD4Submit} className="flex flex-col gap-4">
           <div className="bg-white border-2 border-black p-4 rounded text-black flex flex-col gap-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
@@ -776,7 +802,7 @@ export default function DailyMission() {
               className="accent-black cursor-pointer w-5 h-5"
             />
             <label htmlFor="d4-anonymous-toggle" className="text-base text-black cursor-pointer font-extrabold flex items-center gap-1.5">
-              <User className="w-4 h-4 text-black" /> 匿名發佈 (顯示為 "Anonymous Agent")
+              <User className="w-4 h-4 text-black" /> 匿名發佈 (顯示為 "匿名")
             </label>
           </div>
 
@@ -800,7 +826,7 @@ export default function DailyMission() {
         </form>
       )}
 
-      {/* --- DAY D-3: SECRET WORRY BOTTLE --- */}
+      {/* --- DAY D-3: BOTTLE+ROUTING (ONE-TIME SUBMISSION LOCK) --- */}
       {currentDay === "D-3" && (
         <form onSubmit={handleD3Submit} className="flex flex-col gap-4">
           <div className="bg-white border-2 border-black p-4 rounded text-black flex flex-col gap-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
@@ -815,33 +841,53 @@ export default function DailyMission() {
           <textarea
             value={d3WorryText}
             onChange={(e) => setD3WorryText(e.target.value)}
+            readOnly={isD3Submitted}
+            disabled={isD3Submitted}
             rows={4}
-            placeholder="寫下你的小秘密、煩惱或悄悄話..."
-            className="w-full bg-yellow-50 border-2 border-black rounded p-3.5 text-base md:text-lg text-black placeholder:text-stone-500 font-bold focus:outline-none focus:bg-white shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+            placeholder={isD3Submitted ? "您的小秘密已成功投遞入漂流瓶" : "寫下你的小秘密、煩惱或悄悄話..."}
+            className={`w-full border-2 border-black rounded p-3.5 text-base md:text-lg font-bold shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] ${
+              isD3Submitted
+                ? "bg-amber-50 text-stone-700 cursor-not-allowed"
+                : "bg-yellow-50 text-black placeholder:text-stone-500 focus:outline-none focus:bg-white"
+            }`}
             required
           />
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full py-3 bg-amber-300 hover:bg-black hover:text-white border-2 border-black text-black font-extrabold uppercase text-lg rounded tracking-wider flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-none"
-          >
-            <Send className="w-5 h-5" />
-            <span>{submitting ? "投瓶中..." : "將小秘密丟入漂流瓶"}</span>
-          </button>
+          {isD3Submitted ? (
+            <div className="w-full py-3 bg-amber-300 border-2 border-black text-black font-extrabold uppercase text-base sm:text-lg rounded flex items-center justify-center gap-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+              <CheckCircle2 className="w-5 h-5 text-black shrink-0" />
+              <span>小秘密已成功投遞 (已送出)</span>
+            </div>
+          ) : (
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full py-3 bg-amber-300 hover:bg-black hover:text-white border-2 border-black text-black font-extrabold uppercase text-lg rounded tracking-wider flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-none"
+            >
+              <Send className="w-5 h-5" />
+              <span>{submitting ? "投瓶中..." : "將小秘密丟入漂流瓶"}</span>
+            </button>
+          )}
         </form>
       )}
 
-      {/* --- DAY D-2: DOUBLE TASK (BOTTLE REPLY & NEXT EVENT) --- */}
+      {/* --- DAY D-2: 回覆BOTTLE+下次許願 (COHESIVE SINGLE MISSION) --- */}
       {currentDay === "D-2" && (
         <div className="flex flex-col gap-6">
-          {/* Part 1: Interactive Popup/Box for Drifting Bottle */}
+          {/* Bottle Reply Section */}
           <div className="bg-white border-2 border-black p-4 rounded text-black flex flex-col gap-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
             <span className="text-black font-extrabold uppercase flex items-center gap-1.5 text-base md:text-lg">
-              <Inbox className="w-5 h-5 text-black" /> 【D-2 任務 Part 1: 漂流瓶回覆】
+              <Inbox className="w-5 h-5 text-black" /> 【D-2 漂流瓶回覆】
             </span>
 
-            {!d2AcceptedBottle ? (
+            {!assignedWorry ? (
+              <div className="bg-yellow-50 border-2 border-black p-4 rounded text-black flex items-center gap-3 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                <Sparkles className="w-5 h-5 text-amber-600 shrink-0 animate-pulse" />
+                <p className="text-sm sm:text-base font-bold text-stone-800 leading-relaxed">
+                  漂流瓶正在大海中漂流尋找配對中，請稍後再來查看！
+                </p>
+              </div>
+            ) : !d2AcceptedBottle ? (
               <div className="bg-yellow-100 border-2 border-black p-4 rounded flex flex-col gap-3">
                 <p className="font-extrabold text-stone-900 leading-relaxed text-base md:text-lg">
                   哎呀，有一隻瓶子使用仰式朝你游過來了，請問你是要接收下來還是？
@@ -867,46 +913,55 @@ export default function DailyMission() {
                   請你回覆這張紙條的主人吧，放心，這個回覆是匿名的，啊所以也因為是這樣，如果你真的很想署名要自己寫欸
                 </p>
 
-                {assignedWorry ? (
-                  <div className="bg-yellow-50 border-2 border-black p-3.5 rounded flex flex-col gap-1.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
-                    <span className="text-xs sm:text-sm text-stone-700 font-black uppercase">
-                      收到的紙條內容：
-                    </span>
-                    <p className="italic text-black font-bold text-base md:text-lg bg-white p-3 border border-stone-400 rounded">
-                      "{assignedWorry.worryText}"
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-base text-stone-600 font-bold italic bg-yellow-50 p-3 border-2 border-black rounded">
-                    (目前尚未配對到紙條，可以先預寫回覆文字...)
+                <div className="bg-yellow-50 border-2 border-black p-3.5 rounded flex flex-col gap-1.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                  <span className="text-xs sm:text-sm text-stone-700 font-black uppercase">
+                    收到的紙條內容：
+                  </span>
+                  <p className="text-black font-bold text-base md:text-lg bg-white p-3 border border-stone-400 rounded">
+                    {cleanPostText(assignedWorry.worryText)}
                   </p>
-                )}
+                </div>
 
                 <textarea
                   value={d2ReplyText}
                   onChange={(e) => setD2ReplyText(e.target.value)}
+                  readOnly={isD2ReplySubmitted}
+                  disabled={isD2ReplySubmitted}
                   rows={3}
-                  placeholder="寫下你的溫馨回覆..."
-                  className="w-full bg-yellow-50 border-2 border-black rounded p-3.5 text-base md:text-lg text-black placeholder:text-stone-500 font-bold focus:outline-none focus:bg-white shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+                  placeholder={isD2ReplySubmitted ? "您已成功傳送匿名回覆" : "寫下你的溫馨回覆..."}
+                  className={`w-full border-2 border-black rounded p-3.5 text-base md:text-lg font-bold shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] ${
+                    isD2ReplySubmitted
+                      ? "bg-amber-50 text-stone-700 cursor-not-allowed"
+                      : "bg-yellow-50 text-black placeholder:text-stone-500 focus:outline-none focus:bg-white"
+                  }`}
                   required
                 />
 
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full py-3 bg-amber-300 hover:bg-black hover:text-white border-2 border-black text-black font-extrabold text-lg rounded cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-none"
-                >
-                  <Send className="w-5 h-5" />
-                  <span>{submitting ? "傳送中..." : "傳送匿名回覆"}</span>
-                </button>
+                {isD2ReplySubmitted ? (
+                  <div className="w-full py-3 bg-amber-300 border-2 border-black text-black font-extrabold uppercase text-base sm:text-lg rounded flex items-center justify-center gap-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    <CheckCircle2 className="w-5 h-5 text-black shrink-0" />
+                    <span>匿名回覆已送出 (已送出)</span>
+                  </div>
+                ) : (
+                  <div className="flex justify-end mt-1">
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="px-6 py-2.5 bg-amber-300 hover:bg-black hover:text-white border-2 border-black text-black font-extrabold text-sm sm:text-base rounded cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-none flex items-center gap-1.5 shrink-0"
+                    >
+                      <Send className="w-4 h-4 shrink-0" />
+                      <span>{submitting ? "傳送中..." : "傳送匿名回覆"}</span>
+                    </button>
+                  </div>
+                )}
               </form>
             )}
           </div>
 
-          {/* Part 2: Next Event Wish */}
+          {/* Next Event Wish Section */}
           <form onSubmit={handleD2NextEventSubmit} className="bg-white border-2 border-black p-4 rounded text-black flex flex-col gap-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
             <span className="text-black font-extrabold uppercase flex items-center gap-1.5 text-base md:text-lg">
-              <Compass className="w-5 h-5 text-black" /> 【D-2 任務 Part 2: 下次吐遊許願】
+              <Compass className="w-5 h-5 text-black" /> 【D-2 下次吐遊許願】
             </span>
             <p className="leading-relaxed text-stone-800 font-bold text-base md:text-lg">
               本日任務那肯定也是精選中的精選，關鍵問題，請問，下次吐遊你想去哪裡/想做什麼活動？也許也能給下一任參考，嘻嘻
@@ -915,58 +970,77 @@ export default function DailyMission() {
             <textarea
               value={d2NextEventText}
               onChange={(e) => setD2NextEventText(e.target.value)}
+              readOnly={isD2WishSubmitted}
+              disabled={isD2WishSubmitted}
               rows={3}
-              placeholder="下次想去哪裡、做什麼活動？"
-              className="w-full bg-yellow-50 border-2 border-black rounded p-3.5 text-base md:text-lg text-black placeholder:text-stone-500 font-bold focus:outline-none focus:bg-white shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+              placeholder={isD2WishSubmitted ? "您的下次吐遊許願已成功送出" : "下次想去哪裡、做什麼活動？"}
+              className={`w-full border-2 border-black rounded p-3.5 text-base md:text-lg font-bold shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] ${
+                isD2WishSubmitted
+                  ? "bg-amber-50 text-stone-700 cursor-not-allowed"
+                  : "bg-yellow-50 text-black placeholder:text-stone-500 focus:outline-none focus:bg-white"
+              }`}
               required
             />
 
-            <button
-              type="submit"
-              disabled={submitting || !d2NextEventText.trim()}
-              className="w-full py-3 bg-amber-300 hover:bg-black hover:text-white border-2 border-black text-black font-extrabold uppercase text-lg rounded tracking-wider flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-none"
-            >
-              <Send className="w-5 h-5" />
-              <span>{submitting ? "送出中..." : "送出許願"}</span>
-            </button>
+            {isD2WishSubmitted ? (
+              <div className="w-full py-3 bg-amber-300 border-2 border-black text-black font-extrabold uppercase text-base sm:text-lg rounded flex items-center justify-center gap-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <CheckCircle2 className="w-5 h-5 text-black shrink-0" />
+                <span>許願已成功送出 (已送出)</span>
+              </div>
+            ) : (
+              <div className="flex justify-end mt-1">
+                <button
+                  type="submit"
+                  disabled={submitting || !d2NextEventText.trim()}
+                  className="px-6 py-2.5 bg-amber-300 hover:bg-black hover:text-white border-2 border-black text-black font-extrabold text-sm sm:text-base rounded cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-none flex items-center gap-1.5 shrink-0 disabled:opacity-50"
+                >
+                  <Send className="w-4 h-4 shrink-0" />
+                  <span>{submitting ? "送出中..." : "送出許願"}</span>
+                </button>
+              </div>
+            )}
           </form>
         </div>
       )}
 
-      {/* --- DAY D-1: DRIFTING BOTTLE & RPG BRIEFING MODAL --- */}
+      {/* --- DAY D-1: 收到回覆+播放劇情 --- */}
       {currentDay === "D-1" && (
         <div className="flex flex-col gap-5">
-          {receivedBottle && (
-            <div className="bg-white border-2 border-black p-4 rounded text-xs text-black flex flex-col gap-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-              <span className="text-black font-black uppercase flex items-center gap-1.5">
-                <MessageCircle className="w-4 h-4 text-black" /> D-1 CLIMAX: 收到漂流瓶回信
-              </span>
+          <div className="bg-white border-2 border-black p-4 rounded text-black flex flex-col gap-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+            <span className="text-black font-black uppercase flex items-center gap-1.5 text-base md:text-lg">
+              <MessageCircle className="w-5 h-5 text-black" /> 你的瓶子漂回來了！
+            </span>
 
+            {receivedBottle ? (
               <div className="bg-yellow-50 border-2 border-black p-4 rounded flex flex-col gap-3 font-bold">
                 <div className="flex flex-col gap-1">
-                  <span className="text-[10px] text-stone-700 uppercase font-black">
+                  <span className="text-xs sm:text-sm text-stone-700 font-extrabold uppercase">
                     你先前的悄悄話 (D-3):
                   </span>
-                  <p className="italic text-black text-xs leading-relaxed bg-white p-3 border border-black rounded">
-                    "{receivedBottle.worryText}"
+                  <p className="text-black text-sm md:text-base leading-relaxed bg-white p-3 border-2 border-black rounded">
+                    {cleanPostText(receivedBottle.worryText)}
                   </p>
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <span className="text-[10px] text-stone-700 uppercase font-black">
+                  <span className="text-xs sm:text-sm text-stone-700 font-extrabold uppercase">
                     探員給你的匿名回信 (D-2):
                   </span>
-                  <p className="italic text-black text-xs leading-relaxed bg-amber-200 p-3 border border-black rounded">
-                    "{receivedBottle.replyText}"
+                  <p className="text-black text-sm md:text-base leading-relaxed bg-amber-200 p-3 border-2 border-black rounded">
+                    {cleanPostText(receivedBottle.replyText)}
                   </p>
                 </div>
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="bg-yellow-50 border-2 border-black p-4 rounded text-stone-800 font-bold text-sm md:text-base">
+                漂流瓶還在波濤中前行，暫未收到回信...
+              </div>
+            )}
+          </div>
 
           <button
             onClick={() => setShowRPGModal(true)}
-            className="w-full py-4 bg-amber-300 hover:bg-black hover:text-white border-2 border-black text-black font-black uppercase text-sm rounded shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] tracking-widest flex items-center justify-center gap-2 cursor-pointer transition-none active:translate-x-0.5 active:translate-y-0.5"
+            className="w-full py-4 bg-amber-300 hover:bg-black hover:text-white border-2 border-black text-black font-black uppercase text-base sm:text-lg rounded shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] tracking-widest flex items-center justify-center gap-2 cursor-pointer transition-none active:translate-x-0.5 active:translate-y-0.5"
           >
             <Tv className="w-5 h-5" />
             <span>開啟 D-1 任務簡報 (Visual Novel)</span>

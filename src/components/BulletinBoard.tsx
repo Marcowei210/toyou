@@ -38,11 +38,35 @@ export interface BulletinPost {
   isImportant?: boolean;
 }
 
-const renderAvatarImgLarge = (avatarUrl?: string, authorName?: string) => {
-  if (!avatarUrl || avatarUrl.trim() === "") {
+// Helper to format anonymous names
+const getDisplayName = (authorName?: string, authorId?: string) => {
+  if (
+    !authorName ||
+    authorName.includes("Anonymous") ||
+    authorName === "anonymous" ||
+    authorId === "anonymous"
+  ) {
+    return "匿名";
+  }
+  return authorName;
+};
+
+// Helper to clean message text (removes [Task D-X ...]: prefixes and wrapping quotes)
+const cleanPostText = (rawText?: string) => {
+  if (!rawText) return "";
+  let cleaned = rawText.replace(/^\[[^\]]+\]:\s*/i, "");
+  cleaned = cleaned.trim().replace(/^["'\u201c\u201d]+|["'\u201c\u201d]+$/g, "");
+  return cleaned;
+};
+
+const renderAvatarImgLarge = (avatarUrl?: string, authorName?: string, authorId?: string) => {
+  const displayName = getDisplayName(authorName, authorId);
+  const isAnon = displayName === "匿名";
+
+  if (isAnon || !avatarUrl || avatarUrl.trim() === "") {
     return (
       <div className="w-14 h-14 rounded-full bg-[#262421] border-2 border-amber-500/60 flex items-center justify-center text-amber-500 font-bold text-sm uppercase shrink-0 shadow">
-        {authorName ? authorName.charAt(0) : "A"}
+        {displayName ? displayName.charAt(0) : "匿"}
       </div>
     );
   }
@@ -168,7 +192,7 @@ export default function BulletinBoard() {
         <div className="flex items-center justify-between gap-2 w-full max-w-full box-border">
           <div className="flex items-center gap-2 text-black font-extrabold uppercase tracking-wider text-base sm:text-lg truncate">
             <Pin className="w-4 h-4 text-black rotate-45 shrink-0" />
-            <span className="truncate">Agency Bulletin Board</span>
+            <span className="truncate">一定要看的-佈告欄</span>
           </div>
           <span className="text-xs sm:text-sm text-black bg-yellow-100 px-2.5 py-0.5 border-2 border-black rounded uppercase font-extrabold shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] shrink-0 whitespace-nowrap">
             {displayedPosts.length} Post{displayedPosts.length !== 1 && "s"} Listed
@@ -204,7 +228,7 @@ export default function BulletinBoard() {
         </div>
       </div>
 
-      {/* Message Posting Input (Rendered if user is host OR if currentDay is D-4 to D-1) */}
+      {/* Message Posting Input */}
       {canPostMessage && (
         <form onSubmit={handlePostNotice} className="w-full max-w-full box-border bg-yellow-100 border-2 border-black p-3.5 rounded flex flex-col gap-2.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
           <div className="flex items-center justify-between text-xs sm:text-sm text-black font-extrabold uppercase tracking-wider w-full max-w-full box-border">
@@ -269,87 +293,93 @@ export default function BulletinBoard() {
             </p>
           </div>
         ) : (
-          displayedPosts.map((post) => (
-            <div
-              key={post.id}
-              className={`p-3 rounded border-2 border-black flex items-end gap-3 relative transition-transform ${
-                post.isImportant
-                  ? "bg-red-100 border-red-700 shadow-[3px_3px_0px_0px_rgba(185,28,28,1)]"
-                  : post.isHostNotice
-                  ? "bg-amber-200 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
-                  : "bg-yellow-100 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] -rotate-1 hover:rotate-0"
-              }`}
-            >
-              {/* Left Side: Large Circular Avatar */}
-              {renderAvatarImgLarge(post.avatarUrl, post.authorName)}
+          displayedPosts.map((post) => {
+            const displayName = getDisplayName(post.authorName, post.authorId);
+            const isAnon = displayName === "匿名";
+            const cleanedText = cleanPostText(post.text);
 
-              {/* Right Side: Header + Chat Bubble */}
-              <div className="flex-1 flex flex-col gap-1.5 min-w-0">
-                {/* Meta Header Row */}
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-1.5 font-bold">
-                    {post.isImportant ? (
-                      <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0" />
-                    ) : post.isHostNotice ? (
-                      <Megaphone className="w-3.5 h-3.5 text-black shrink-0" />
-                    ) : (
-                      <User className="w-3.5 h-3.5 text-stone-700 shrink-0" />
-                    )}
-                    <span className={
-                      post.isImportant
-                        ? "text-red-700 font-extrabold uppercase truncate"
-                        : post.authorName?.includes("Anonymous")
-                        ? "text-purple-700 italic font-extrabold truncate"
-                        : post.isHostNotice
-                        ? "text-black font-extrabold truncate"
-                        : "text-stone-900 font-extrabold truncate"
-                    }>
-                      {post.authorName || post.authorId}
-                    </span>
-                  </div>
+            return (
+              <div
+                key={post.id}
+                className={`p-3 rounded border-2 border-black flex items-end gap-3 relative transition-transform ${
+                  post.isImportant
+                    ? "bg-red-100 border-red-700 shadow-[3px_3px_0px_0px_rgba(185,28,28,1)]"
+                    : post.isHostNotice
+                    ? "bg-amber-200 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                    : "bg-yellow-100 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] -rotate-1 hover:rotate-0"
+                }`}
+              >
+                {/* Left Side: Large Circular Avatar */}
+                {renderAvatarImgLarge(post.avatarUrl, post.authorName, post.authorId)}
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    {post.day && (
-                      <span className="bg-[#E6D5B8] border-2 border-black px-1.5 py-0.5 text-[10px] text-black font-extrabold rounded uppercase">
-                        {post.day}
+                {/* Right Side: Header + Chat Bubble */}
+                <div className="flex-1 flex flex-col gap-1.5 min-w-0">
+                  {/* Meta Header Row */}
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5 font-bold">
+                      {post.isImportant ? (
+                        <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                      ) : post.isHostNotice ? (
+                        <Megaphone className="w-3.5 h-3.5 text-black shrink-0" />
+                      ) : (
+                        <User className="w-3.5 h-3.5 text-stone-700 shrink-0" />
+                      )}
+                      <span className={
+                        post.isImportant
+                          ? "text-red-700 font-extrabold uppercase truncate"
+                          : isAnon
+                          ? "text-purple-700 italic font-extrabold truncate"
+                          : post.isHostNotice
+                          ? "text-black font-extrabold truncate"
+                          : "text-stone-900 font-extrabold truncate"
+                      }>
+                        {displayName}
                       </span>
-                    )}
-                    <span className="text-[10px] text-stone-700 flex items-center gap-1 font-bold">
-                      <Clock className="w-3 h-3" />
-                      {new Date(post.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
+                    </div>
 
-                    {/* GM Host Delete Moderation Control Button */}
-                    {user?.role === "host" && (
-                      <button
-                        onClick={() => handleDeletePost(post.id)}
-                        className="p-1 border-2 border-black bg-red-200 hover:bg-black hover:text-white text-black rounded transition-none cursor-pointer"
-                        title="GM Delete Post"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {post.day && (
+                        <span className="bg-[#E6D5B8] border-2 border-black px-1.5 py-0.5 text-[10px] text-black font-extrabold rounded uppercase">
+                          {post.day}
+                        </span>
+                      )}
+                      <span className="text-[10px] text-stone-700 flex items-center gap-1 font-bold">
+                        <Clock className="w-3 h-3" />
+                        {new Date(post.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+
+                      {/* GM Host Delete Moderation Control Button */}
+                      {user?.role === "host" && (
+                        <button
+                          onClick={() => handleDeletePost(post.id)}
+                          className="p-1 border-2 border-black bg-red-200 hover:bg-black hover:text-white text-black rounded transition-none cursor-pointer"
+                          title="GM Delete Post"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Chat Message Bubble (Cleaned text without prefixes or quotes) */}
+                  <p className="text-xs sm:text-sm text-black leading-relaxed bg-white p-2.5 rounded border-2 border-black font-bold break-words shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                    {cleanedText}
+                  </p>
+
+                  {/* Attached Image Rendering (Proportional scaling, no cropping) */}
+                  {post.imageUrl && (
+                    <div className="w-full bg-[#1b1a18] rounded overflow-hidden border-2 border-black mt-1 flex items-center justify-center p-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                      <img
+                        src={post.imageUrl}
+                        alt="Bulletin Attachment"
+                        className="w-full max-h-[360px] object-contain rounded"
+                      />
+                    </div>
+                  )}
                 </div>
-
-                {/* Chat Message Bubble Directly Below Header */}
-                <p className="text-xs text-black leading-relaxed bg-white p-2.5 rounded border-2 border-black font-bold break-words shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
-                  "{post.text}"
-                </p>
-
-                {/* Attached Image Rendering */}
-                {post.imageUrl && (
-                  <div className="w-full h-48 bg-white rounded overflow-hidden border-2 border-black mt-1 relative group shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                    <img
-                      src={post.imageUrl}
-                      alt="Bulletin Attachment"
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                    />
-                  </div>
-                )}
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

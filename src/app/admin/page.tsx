@@ -461,13 +461,13 @@ export default function AdminDashboard() {
                     onChange={(e) => handleSetGameState({ currentDay: e.target.value })}
                     className="bg-[#1b1a18] border border-amber-600 rounded px-4 py-2 text-xs font-bold text-amber-400 focus:outline-none cursor-pointer"
                   >
-                    <option value="D-7">D-7 (Music Recommendation - 2 Inputs)</option>
-                    <option value="D-6">D-6 (Detective Trivia - 4 Radio Choices)</option>
-                    <option value="D-5">D-5 (Photo Upload File)</option>
-                    <option value="D-4">D-4 (Board Post Directive)</option>
-                    <option value="D-3">D-3 (Secret Worry Bottle)</option>
-                    <option value="D-2">D-2 (Assigned Worry Reply & General Question)</option>
-                    <option value="D-1">D-1 (Received Bottle Letter & Mission Briefing)</option>
+                    <option value="D-7">D-7: QA & 登入</option>
+                    <option value="D-6">D-6: 音樂推推</option>
+                    <option value="D-5">D-5: picture</option>
+                    <option value="D-4">D-4: bulletin</option>
+                    <option value="D-3">D-3: bottle+routing</option>
+                    <option value="D-2">D-2: 回覆bottle+下次許願</option>
+                    <option value="D-1">D-1: 收到回覆+播放劇情</option>
                   </select>
                   <span className="text-[10px] text-[#8e8576]">
                     Instantly updates player dashboard to the selected day stage.
