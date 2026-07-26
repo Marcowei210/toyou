@@ -68,39 +68,40 @@ export default function EvidenceBoard() {
     setTimeout(() => setRiddleFeedback(""), 4000);
   };
 
-  // Upload Case Evidence via Base64 Data URL to bypass Firebase Storage
+  // Upload Case Evidence via /api/upload (@vercel/blob)
   const handleEvidenceUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file || !note.trim()) return;
 
     setUploading(true);
     try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        try {
-          const base64DataUrl = reader.result as string;
+      const formData = new FormData();
+      formData.append("file", file);
 
-          await addDoc(collection(db, "users", user.accountId, "evidence"), {
-            url: base64DataUrl,
-            note: note.trim(),
-            createdAt: new Date().toISOString(),
-          });
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
 
-          setNote("");
-          setFile(null);
-          const fileInput = document.getElementById("evidence-file") as HTMLInputElement;
-          if (fileInput) fileInput.value = "";
-        } catch (err) {
-          console.error("Evidence upload error:", err);
-          alert("Failed to pin evidence file.");
-        } finally {
-          setUploading(false);
-        }
-      };
-      reader.readAsDataURL(file);
-    } catch (error) {
-      console.error("Evidence read error:", error);
-      alert("Failed to read file.");
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Upload failed");
+      }
+
+      await addDoc(collection(db, "users", user.accountId, "evidence"), {
+        url: data.url,
+        note: note.trim(),
+        createdAt: new Date().toISOString(),
+      });
+
+      setNote("");
+      setFile(null);
+      const fileInput = document.getElementById("evidence-file") as HTMLInputElement;
+      if (fileInput) fileInput.value = "";
+    } catch (error: any) {
+      console.error("Evidence upload error:", error);
+      alert(`Failed to pin evidence file: ${error.message || error}`);
+    } finally {
       setUploading(false);
     }
   };

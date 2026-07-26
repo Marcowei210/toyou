@@ -331,50 +331,51 @@ export default function DailyMission() {
 
     setSubmitting(true);
     try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        try {
-          const base64DataUrl = reader.result as string;
+      const formData = new FormData();
+      formData.append("file", photoFile);
 
-          await addDoc(collection(db, "submissions"), {
-            accountId: user.accountId,
-            imageUrl: base64DataUrl,
-            note: `[Task D-5 Photo]: ${photoNote.trim()}`,
-            day: "D-5",
-            status: "pending",
-            createdAt: new Date().toISOString(),
-          });
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
 
-          const currentCount = user.d5UploadCount || 0;
-          let ptsToAward = 0;
-          if (currentCount === 0) ptsToAward = 3;
-          else if (currentCount === 1) ptsToAward = 1;
-          else ptsToAward = 0;
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Upload failed");
+      }
 
-          await completeTaskAndReward("D-5", ptsToAward);
+      await addDoc(collection(db, "submissions"), {
+        accountId: user.accountId,
+        imageUrl: data.url,
+        note: `[Task D-5 Photo]: ${photoNote.trim()}`,
+        day: "D-5",
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      });
 
-          setPhotoFile(null);
-          setPhotoNote("");
-          const inputEl = document.getElementById("d5-photo-input") as HTMLInputElement;
-          if (inputEl) inputEl.value = "";
+      const currentCount = user.d5UploadCount || 0;
+      let ptsToAward = 0;
+      if (currentCount === 0) ptsToAward = 3;
+      else if (currentCount === 1) ptsToAward = 1;
+      else ptsToAward = 0;
 
-          setFeedback(
-            ptsToAward > 0
-              ? `照片上傳成功！獲得 +${ptsToAward} pt！`
-              : "照片上傳成功！"
-          );
-          setTimeout(() => setFeedback(null), 5000);
-        } catch (err) {
-          console.error("D-5 submit error:", err);
-          alert("Submission failed.");
-        } finally {
-          setSubmitting(false);
-        }
-      };
-      reader.readAsDataURL(photoFile);
-    } catch (err) {
+      await completeTaskAndReward("D-5", ptsToAward);
+
+      setPhotoFile(null);
+      setPhotoNote("");
+      const inputEl = document.getElementById("d5-photo-input") as HTMLInputElement;
+      if (inputEl) inputEl.value = "";
+
+      setFeedback(
+        ptsToAward > 0
+          ? `照片上傳成功！獲得 +${ptsToAward} pt！`
+          : "照片上傳成功！"
+      );
+      setTimeout(() => setFeedback(null), 5000);
+    } catch (err: any) {
       console.error("D-5 Photo submit error:", err);
-      alert("Photo submission failed.");
+      alert(`照片上傳失敗: ${err.message || err}`);
+    } finally {
       setSubmitting(false);
     }
   };

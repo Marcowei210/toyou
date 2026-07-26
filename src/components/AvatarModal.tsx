@@ -127,19 +127,44 @@ export default function AvatarModal({ isOpen, onClose, isForced }: AvatarModalPr
     ctx.moveTo(x, y);
   };
 
-  // Convert Canvas directly to Base64 Data URL to bypass Firebase Storage
+  // Upload Canvas drawing to Vercel Blob via /api/upload
   const handleSaveDrawing = async () => {
     if (!canvasRef.current) return;
     setUploading(true);
 
     try {
-      const base64DataUrl = canvasRef.current.toDataURL("image/png");
-      await updateAvatar(base64DataUrl);
-      onClose();
-    } catch (err) {
-      console.error("Failed to save drawing avatar:", err);
-      alert("儲存大頭照失敗，請再試一次。");
-    } finally {
+      canvasRef.current.toBlob(async (blob) => {
+        if (!blob) {
+          setUploading(false);
+          return;
+        }
+
+        try {
+          const file = new File([blob], `avatar_${user.accountId}.png`, { type: "image/png" });
+          const formData = new FormData();
+          formData.append("file", file);
+
+          const res = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+
+          const data = await res.json();
+          if (!res.ok || data.error) {
+            throw new Error(data.error || "Upload failed");
+          }
+
+          await updateAvatar(data.url);
+          onClose();
+        } catch (err: any) {
+          console.error("Failed to upload drawing avatar:", err);
+          alert(`儲存大頭照失敗: ${err.message || err}`);
+        } finally {
+          setUploading(false);
+        }
+      }, "image/png");
+    } catch (err: any) {
+      console.error("Canvas blob conversion error:", err);
       setUploading(false);
     }
   };
@@ -155,29 +180,31 @@ export default function AvatarModal({ isOpen, onClose, isForced }: AvatarModalPr
     }
   };
 
-  // Convert uploaded image directly to Base64 Data URL to bypass Firebase Storage
+  // Upload selected file directly to Vercel Blob via /api/upload
   const handleApplyUpload = async () => {
     if (!selectedFile) return;
     setUploading(true);
 
     try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        try {
-          const base64DataUrl = reader.result as string;
-          await updateAvatar(base64DataUrl);
-          onClose();
-        } catch (err) {
-          console.error("Upload save error:", err);
-          alert("儲存圖片失敗，請再試一次。");
-        } finally {
-          setUploading(false);
-        }
-      };
-      reader.readAsDataURL(selectedFile);
-    } catch (err) {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Upload failed");
+      }
+
+      await updateAvatar(data.url);
+      onClose();
+    } catch (err: any) {
       console.error("Upload error:", err);
-      alert("讀取圖片失敗，請再試一次。");
+      alert(`上傳圖片失敗: ${err.message || err}`);
+    } finally {
       setUploading(false);
     }
   };
