@@ -40,24 +40,40 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Query Firestore via firebase-admin lazily
+    // 2. Query Firestore via firebase-admin lazily to check if Account ID already exists
     const db = getAdminDb();
     console.log(`[Register API] Querying Firestore for user document '${accountId}'...`);
     const userDocRef = db.collection("users").doc(accountId);
     
-    let userDoc;
+    let userExists = false;
     try {
-      userDoc = await userDocRef.get();
-      console.log(`[Register API] Document check for '${accountId}' complete. Exists: ${userDoc.exists}`);
+      const userDoc = await userDocRef.get();
+      userExists = userDoc.exists;
+      console.log(`[Register API] Document check for '${accountId}' complete. Exists: ${userExists}`);
     } catch (readErr: any) {
-      console.error(`[Register API Error] Firestore read failed for '${accountId}':`, readErr);
-      return NextResponse.json(
-        { error: `Database query failed: ${readErr.message || readErr}` },
-        { status: 500 }
-      );
+      const errCode = readErr?.code;
+      const errMessage = String(readErr?.message || readErr);
+
+      // gRPC Code 5 or NOT_FOUND indicates the document doesn't exist yet -> treat as userExists = false
+      if (
+        errCode === 5 ||
+        errCode === "not-found" ||
+        errCode === "auth/user-not-found" ||
+        errMessage.includes("NOT_FOUND") ||
+        errMessage.includes("5 NOT_FOUND")
+      ) {
+        console.log(`[Register API] Document '${accountId}' not found (Code 5/NOT_FOUND). Account ID is available for registration.`);
+        userExists = false;
+      } else {
+        console.error(`[Register API Error] Firestore read failed for '${accountId}':`, readErr);
+        return NextResponse.json(
+          { error: `Database query failed: ${errMessage}` },
+          { status: 500 }
+        );
+      }
     }
 
-    if (userDoc.exists) {
+    if (userExists) {
       console.log(`[Register API] Account ID '${accountId}' is taken. Returning 400 Bad Request.`);
       return NextResponse.json(
         { error: "Account ID is already taken. Please choose a different Account ID." },

@@ -24,9 +24,29 @@ export async function POST(request: Request) {
     // 2. Fetch user profile lazily
     const db = getAdminDb();
     const userDocRef = db.collection("users").doc(accountId);
-    const userDoc = await userDocRef.get();
 
-    if (!userDoc.exists) {
+    let userDoc: any = null;
+    try {
+      userDoc = await userDocRef.get();
+    } catch (readErr: any) {
+      const errCode = readErr?.code;
+      const errMessage = String(readErr?.message || readErr);
+      if (
+        errCode === 5 ||
+        errCode === "not-found" ||
+        errCode === "auth/user-not-found" ||
+        errMessage.includes("NOT_FOUND") ||
+        errMessage.includes("5 NOT_FOUND")
+      ) {
+        return NextResponse.json(
+          { error: "No such detective case file. Invalid Account ID or password." },
+          { status: 401 }
+        );
+      }
+      throw readErr;
+    }
+
+    if (!userDoc || !userDoc.exists) {
       return NextResponse.json(
         { error: "No such detective case file. Invalid Account ID or password." },
         { status: 401 }
