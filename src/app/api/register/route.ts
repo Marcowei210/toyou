@@ -81,38 +81,51 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Write user profile and credentials to Firestore using .doc(accountId).set({...})
+    // 3. Write user profile and credentials to Firestore using .doc(accountId).set({...}, { merge: true })
     const hashedPassword = hashPassword(password);
 
-    console.log(`[Register API] Executing .doc('${accountId}').set({...}) for user profile...`);
+    console.log(`[Register API] Executing .doc('${accountId}').set({...}, { merge: true }) for user profile...`);
     try {
-      await userDocRef.set({
-        accountId,
-        nickname,
-        score: 0,
-        title: "Novice Detective",
-        avatarUrl: "",
-        role: "player",
-        team: "Unassigned",
-        isLeader: false,
-        createdAt: new Date().toISOString(),
-      });
+      await userDocRef.set(
+        {
+          accountId,
+          nickname,
+          score: 0,
+          title: "Novice Detective",
+          avatarUrl: "",
+          role: "player",
+          team: "Unassigned",
+          isLeader: false,
+          createdAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
       console.log(`[Register API] Successfully wrote user profile document for '${accountId}'.`);
     } catch (writeErr: any) {
+      const msg = writeErr?.message || String(writeErr);
       console.error(`[Register API Error] Failed to write user profile for '${accountId}':`, writeErr);
+      if (msg.includes("5 NOT_FOUND") || msg.includes("NOT_FOUND")) {
+        return NextResponse.json(
+          { error: `Firestore database not found or not created yet in Firebase Console (Error 5: NOT_FOUND). Please open Firebase Console -> Firestore Database and click 'Create database'.` },
+          { status: 500 }
+        );
+      }
       return NextResponse.json(
-        { error: `Failed to create user profile: ${writeErr.message || writeErr}` },
+        { error: `Failed to create user profile: ${msg}` },
         { status: 500 }
       );
     }
 
-    console.log(`[Register API] Executing .set({...}) for credentials subcollection...`);
+    console.log(`[Register API] Executing .set({...}, { merge: true }) for credentials subcollection...`);
     try {
       const credentialsDocRef = userDocRef.collection("private").doc("credentials");
-      await credentialsDocRef.set({
-        passwordHash: hashedPassword,
-        updatedAt: new Date().toISOString(),
-      });
+      await credentialsDocRef.set(
+        {
+          passwordHash: hashedPassword,
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
       console.log(`[Register API] Successfully wrote credentials subcollection for '${accountId}'.`);
     } catch (credErr: any) {
       console.error(`[Register API Error] Failed to write credentials for '${accountId}':`, credErr);
