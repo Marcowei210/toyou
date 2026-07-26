@@ -390,7 +390,7 @@ export default function DailyMission() {
       const currentCount = user.d5UploadCount || 0;
       let ptsToAward = 0;
       if (currentCount === 0) ptsToAward = 3;
-      else if (currentCount === 1) ptsToAward = 1;
+      else if (currentCount === 1) ptsToAward = 2;
       else ptsToAward = 0;
 
       await completeTaskAndReward("D-5", ptsToAward);
@@ -664,8 +664,8 @@ export default function DailyMission() {
             <span className="text-black font-extrabold uppercase flex items-center gap-1.5 text-base md:text-lg">
               <Music className="w-5 h-5 text-black" /> 【D-6 音樂推推】
             </span>
-            <p className="leading-relaxed text-stone-800 font-bold text-base md:text-lg">
-              六六大順，今天的小任務是推薦一到五首歌給探員夥伴們吧！請分別填寫歌名與歌手/樂團。
+            <p className="leading-relaxed text-stone-800 font-bold text-base md:text-lg whitespace-pre-line">
+              {`準備登入吐遊，肯定要準備好心情吧？或是讓我知道你的心情，首先就是來個一二三四五首，現在！正在聽的音樂！\n或是想推薦個的~最好是在YouTube or Spotify 找得到的啦，以上，就是今天的任務(ﾉ*0*)ﾉ→`}
             </p>
           </div>
 
@@ -751,12 +751,12 @@ export default function DailyMission() {
               />
             </div>
             <div>
-              <label className="block text-base font-extrabold text-black uppercase mb-1">照片備註 (選填)</label>
+              <label className="block text-base font-extrabold text-black uppercase mb-1">照片備註</label>
               <input
                 type="text"
                 value={photoNote}
                 onChange={(e) => setPhotoNote(e.target.value)}
-                placeholder="寫點這張照片的故事吧..."
+                placeholder="替這張照片寫句說明吧..."
                 className="w-full bg-yellow-50 border-2 border-black rounded px-3.5 py-2.5 text-base md:text-lg text-black placeholder:text-stone-500 font-bold focus:outline-none focus:bg-white"
               />
             </div>
