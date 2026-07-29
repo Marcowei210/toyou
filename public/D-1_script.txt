@@ -1,0 +1,48 @@
+[Scene: Background = scene1.png]
+: 完了完了完了，現在還來得及嗎？
+[Action: Overlay idea_camp.png (top-left, 60% size) and idea_camp_tools.png (top-right, 60% size)]
+: 雖然很早就開始查，但是真的要執行我能走得開嗎？
+: 頭、頭都洗下去了有可能說不幹了嗎？
+[Action: Clear overlays]
+: 那肯定是不行的嘛，怎麼辦怎麼辦馬可，想想辦法啊
+: 好啦還是算了，當天搞失蹤然後從此消失好了
+[Scene: Background = scene2.png, Animation = Shake 3 times]
+: 那可不行！你能當這樣的人嗎
+: 好啊好啊我不當人了！
+[Transition: Black Screen]
+: ...
+[Scene: Fullscreen CG = scene_big_head.png, UI = Hide Dialogue Box]
+: ......啥啊？
+[UI: Show Dialogue Box]
+虎: 呃，反應可以稍微再大一點嗎
+[Layout: Background = background1.png, Left Sprite = tiger_bat_laugh.png (Size +20%), Right Sprite = horse_locked.png (Size +20%)]
+虎: 我不幹了
+馬: 你不能這樣，說話不算話
+虎: 那我欠著可以嗎？就......改次？
+[Animation: Right Sprite jumps]
+馬: 改到哪次啊，不行啊當然不行啊，咬著牙你都要給我做到啊，做不到就不要講啊，你這樣很爛欸，你知不知道......
+[Scene: Fullscreen CG = scene_tiger_bat_angry.png, UI = Hide Dialogue Box]
+[UI: Show Dialogue Box]
+虎: 閉嘴！
+虎: 少囉嗦，反正就是這樣，我要走了。
+[Layout: Background = background1.png, Left Sprite = tiger_angry.png (Size +20%), Right Sprite = horse_locked.png (Size +20%)]
+[Animation: Right Sprite jumps]
+馬: 欸欸欸，放我走啊，而且你是誰啊
+[Action: Change Left Sprite to tiger_eye_closed.png]
+虎: 你就自己在這裡待著吧，我要去？、#X了
+馬: 蛤？我聽不到
+[Action: Change Left Sprite to tiger_back.png]
+虎: 你耳朵有問題啊？還是沒認真聽
+[Animation: Right Sprite jumps]
+馬: 我有認真聽啊！那所以這裡是哪啊？
+[Animation: Left Sprite shrinks and moves to top-left (10% slower), Right Sprite hops left slightly (3px) from its original right position]
+虎: 這裡？你不用知道啦，反正過陣子我心情好就會放你出去了
+馬: りしれ供さん小，哪有人像你一樣不負責任又隨性啊！
+[Scene: Fullscreen CG = scene_horse_worry.png]
+馬: 欸那個...抱歉，可能要欠...
+[Audio: Play BGM = /title_music.wav]
+[Sequence: Background = pure_white.png, Foreground sequence = owe.png -> that.png -> toast_trip.png]
+[Scene: Background = pure_white.png, Fullscreen CG = title.png (object-contain, no stretch)]
+[Audio: Stop BGM, Play SFX = /step_in.mp3]
+[Scene: Fullscreen CG = scene_last.png]
+馬: 好啦總之就是這樣，我們一起找到他吧，在那之後帶大家來本馬的村莊坐坐，雖然可能招待不周，但就麻煩大家了！！

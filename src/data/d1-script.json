@@ -1,0 +1,245 @@
+[
+  {
+    "id": 1,
+    "speaker": "",
+    "text": "完了完了完了，現在還來得及嗎？",
+    "background": "/scene1.png"
+  },
+  {
+    "id": 2,
+    "speaker": "",
+    "text": "雖然很早就開始查，但是真的要執行我能走得開嗎？",
+    "background": "/scene1.png",
+    "overlays": ["/idea_camp.png", "/idea_camp_tools.png"]
+  },
+  {
+    "id": 3,
+    "speaker": "",
+    "text": "頭、頭都洗下去了有可能說不幹了嗎？",
+    "background": "/scene1.png",
+    "overlays": ["/idea_camp.png", "/idea_camp_tools.png"]
+  },
+  {
+    "id": 4,
+    "speaker": "",
+    "text": "那肯定是不行的嘛，怎麼辦怎麼辦馬可，想想辦法啊",
+    "background": "/scene1.png"
+  },
+  {
+    "id": 5,
+    "speaker": "",
+    "text": "好啦還是算了，當天搞失蹤然後從此消失好了",
+    "background": "/scene1.png"
+  },
+  {
+    "id": 6,
+    "speaker": "",
+    "text": "那可不行！你能當這樣的人嗎",
+    "background": "/scene2.png",
+    "backgroundAnimation": "shake"
+  },
+  {
+    "id": 7,
+    "speaker": "",
+    "text": "好啊好啊我不當人了！",
+    "background": "/scene2.png",
+    "backgroundAnimation": "shake"
+  },
+  {
+    "id": 8,
+    "speaker": "",
+    "text": "...",
+    "background": "",
+    "isBlackScreen": true
+  },
+  {
+    "id": 9,
+    "speaker": "",
+    "text": "",
+    "background": "",
+    "cgImage": "/scene_big_head.png",
+    "hideDialogueBox": true
+  },
+  {
+    "id": 10,
+    "speaker": "",
+    "text": "......啥啊？",
+    "background": "",
+    "cgImage": "/scene_big_head.png"
+  },
+  {
+    "id": 11,
+    "speaker": "虎",
+    "text": "呃，反應可以稍微再大一點嗎",
+    "background": "",
+    "cgImage": "/scene_big_head.png"
+  },
+  {
+    "id": 12,
+    "speaker": "虎",
+    "text": "我不幹了",
+    "background": "/background1.png",
+    "leftSprite": "/tiger_bat_laugh.png",
+    "rightSprite": "/horse_locked.png"
+  },
+  {
+    "id": 13,
+    "speaker": "馬",
+    "text": "你不能這樣，說話不算話",
+    "background": "/background1.png",
+    "leftSprite": "/tiger_bat_laugh.png",
+    "rightSprite": "/horse_locked.png"
+  },
+  {
+    "id": 14,
+    "speaker": "虎",
+    "text": "那我欠著可以嗎？就......改次？",
+    "background": "/background1.png",
+    "leftSprite": "/tiger_bat_laugh.png",
+    "rightSprite": "/horse_locked.png"
+  },
+  {
+    "id": 15,
+    "speaker": "馬",
+    "text": "改到哪次啊，不行啊當然不行啊，咬著牙你都要給我做到啊，做不到就不要講啊，你這樣很爛欸，你知不知道......",
+    "background": "/background1.png",
+    "leftSprite": "/tiger_bat_laugh.png",
+    "rightSprite": "/horse_locked.png",
+    "rightSpriteAnimation": "jump"
+  },
+  {
+    "id": 16,
+    "speaker": "",
+    "text": "",
+    "background": "",
+    "cgImage": "/scene_tiger_bat_angry.png",
+    "hideDialogueBox": true
+  },
+  {
+    "id": 17,
+    "speaker": "虎",
+    "text": "閉嘴！",
+    "background": "",
+    "cgImage": "/scene_tiger_bat_angry.png"
+  },
+  {
+    "id": 18,
+    "speaker": "虎",
+    "text": "少囉嗦，反正就是這樣，我要走了。",
+    "background": "",
+    "cgImage": "/scene_tiger_bat_angry.png"
+  },
+  {
+    "id": 19,
+    "speaker": "馬",
+    "text": "欸欸欸，放我走啊，而且你是誰啊",
+    "background": "/background1.png",
+    "leftSprite": "/tiger_angry.png",
+    "rightSprite": "/horse_locked.png",
+    "rightSpriteAnimation": "jump"
+  },
+  {
+    "id": 20,
+    "speaker": "虎",
+    "text": "你就自己在這裡待著吧，我要去？、#X了",
+    "background": "/background1.png",
+    "leftSprite": "/tiger_eye_closed.png",
+    "rightSprite": "/horse_locked.png"
+  },
+  {
+    "id": 21,
+    "speaker": "馬",
+    "text": "蛤？我聽不到",
+    "background": "/background1.png",
+    "leftSprite": "/tiger_eye_closed.png",
+    "rightSprite": "/horse_locked.png"
+  },
+  {
+    "id": 22,
+    "speaker": "虎",
+    "text": "你耳朵有問題啊？還是沒認真聽",
+    "background": "/background1.png",
+    "leftSprite": "/tiger_back.png",
+    "rightSprite": "/horse_locked.png"
+  },
+  {
+    "id": 23,
+    "speaker": "馬",
+    "text": "我有認真聽啊！那所以這裡是哪啊？",
+    "background": "/background1.png",
+    "leftSprite": "/tiger_back.png",
+    "rightSprite": "/horse_locked.png",
+    "rightSpriteAnimation": "jump"
+  },
+  {
+    "id": 24,
+    "speaker": "虎",
+    "text": "這裡？你不用知道啦，反正過陣子我心情好就會放你出去了",
+    "background": "/background1.png",
+    "leftSprite": "/tiger_back.png",
+    "leftSpriteAnimation": "shrink-top-left",
+    "rightSprite": "/horse_locked.png",
+    "rightSpriteAnimation": "hop-left"
+  },
+  {
+    "id": 25,
+    "speaker": "馬",
+    "text": "りしれ供さん小，哪有人像你一樣不負責任又隨性啊！",
+    "background": "/background1.png",
+    "rightSprite": "/horse_locked.png",
+    "rightSpriteAnimation": "hop-left"
+  },
+  {
+    "id": 26,
+    "speaker": "馬",
+    "text": "欸那個...抱歉，可能要欠...",
+    "background": "",
+    "cgImage": "/scene_horse_worry.png"
+  },
+  {
+    "id": 27,
+    "speaker": "",
+    "text": "欠",
+    "background": "/pure_white.png",
+    "cgImage": "/owe.png",
+    "hideDialogueBox": true,
+    "bgm": "/title_music.wav"
+  },
+  {
+    "id": 28,
+    "speaker": "",
+    "text": "那個",
+    "background": "/pure_white.png",
+    "cgImage": "/that.png",
+    "hideDialogueBox": true,
+    "bgm": "/title_music.wav"
+  },
+  {
+    "id": 29,
+    "speaker": "",
+    "text": "吐遊",
+    "background": "/pure_white.png",
+    "cgImage": "/toast_trip.png",
+    "hideDialogueBox": true,
+    "bgm": "/title_music.wav"
+  },
+  {
+    "id": 30,
+    "speaker": "",
+    "text": "",
+    "background": "/pure_white.png",
+    "cgImage": "/title.png",
+    "cgObjectContain": true,
+    "hideDialogueBox": true,
+    "bgm": "/title_music.wav"
+  },
+  {
+    "id": 31,
+    "speaker": "馬",
+    "text": "好啦總之就是這樣，我們一起找到他吧，在那之後帶大家來本馬的村莊坐坐，雖然可能招待不周，但就麻煩大家了！！",
+    "background": "",
+    "cgImage": "/scene_last.png",
+    "stopBgm": true,
+    "sfx": "/step_in.mp3"
+  }
+]
