@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import d1ScriptData from "@/data/d1-script.json";
 import { X, RotateCcw, FastForward } from "lucide-react";
 
@@ -31,6 +32,7 @@ interface D1StoryPageProps {
 }
 
 export default function D1StoryPage({ onClose, onComplete }: D1StoryPageProps) {
+  const [mounted, setMounted] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [displayedText, setDisplayedText] = useState("");
   const [isTyping, setIsTyping] = useState(true);
@@ -43,7 +45,12 @@ export default function D1StoryPage({ onClose, onComplete }: D1StoryPageProps) {
   const steps = d1ScriptData as D1ScriptStep[];
   const currentStep = steps[currentStepIndex] || steps[0];
 
-  // 1. Orientation check: Detect if screen is in portrait orientation
+  // 1. Client Mount Check for React Portal
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // 2. Orientation check: Detect if screen is in portrait orientation
   useEffect(() => {
     const checkOrientation = () => {
       const portrait = window.matchMedia("(orientation: portrait)").matches || window.innerHeight > window.innerWidth;
@@ -60,7 +67,7 @@ export default function D1StoryPage({ onClose, onComplete }: D1StoryPageProps) {
     };
   }, []);
 
-  // 2. Typewriter Effect
+  // 3. Typewriter Effect
   useEffect(() => {
     if (!currentStep) return;
 
@@ -86,7 +93,7 @@ export default function D1StoryPage({ onClose, onComplete }: D1StoryPageProps) {
     return () => clearInterval(interval);
   }, [currentStepIndex]);
 
-  // 3. Audio (BGM & SFX) Management Effect
+  // 4. Audio (BGM & SFX) Management Effect
   useEffect(() => {
     if (!currentStep) return;
 
@@ -202,11 +209,13 @@ export default function D1StoryPage({ onClose, onComplete }: D1StoryPageProps) {
     !currentStep.isBlackScreen &&
     Boolean(currentStep.text && currentStep.text.trim().length > 0);
 
-  return (
-    <div className="fixed inset-0 z-[9999] w-[100dvw] h-[100dvh] max-w-none max-h-none bg-black overflow-hidden select-none font-sans flex flex-col">
+  if (!mounted) return null;
+
+  return createPortal(
+    <div className="fixed top-0 left-0 right-0 bottom-0 z-[99999] m-0 p-0 bg-black flex justify-center items-center overflow-hidden w-screen w-[100dvw] h-[100dvh] touch-none overscroll-none select-none font-sans flex-col">
       {/* --- PORTRAIT ORIENTATION LOCK OVERLAY --- */}
       {isPortrait && (
-        <div className="fixed inset-0 z-[10000] w-[100dvw] h-[100dvh] bg-black/95 text-amber-400 flex flex-col items-center justify-center p-6 text-center select-none animate-fadeIn">
+        <div className="fixed inset-0 z-[100000] w-screen w-[100dvw] h-[100dvh] bg-black/95 text-amber-400 flex flex-col items-center justify-center p-6 text-center select-none touch-none overscroll-none animate-fadeIn">
           <div className="w-20 h-20 mb-6 border-4 border-amber-400 rounded-2xl flex items-center justify-center animate-[rotatePhone_2.5s_infinite_ease-in-out]">
             <RotateCcw className="w-10 h-10 text-amber-400" />
           </div>
@@ -226,7 +235,7 @@ export default function D1StoryPage({ onClose, onComplete }: D1StoryPageProps) {
       <div
         key={`canvas-step-${currentStep.id}`}
         onClick={handleAdvance}
-        className="relative w-[100dvw] h-[100dvh] w-full h-full bg-black overflow-hidden cursor-pointer flex flex-col justify-between"
+        className="relative w-screen w-[100dvw] h-[100dvh] w-full h-full bg-black overflow-hidden touch-none overscroll-none cursor-pointer flex flex-col justify-between"
       >
         {/* CSS Custom Keyframe Animations */}
         <style jsx global>{`
@@ -277,17 +286,17 @@ export default function D1StoryPage({ onClose, onComplete }: D1StoryPageProps) {
         {currentStep.isBlackScreen && (
           <div
             key="strict-black-screen"
-            className="absolute inset-0 bg-black z-50 flex items-center justify-center pointer-events-none"
+            className="absolute inset-0 bg-black z-50 flex items-center justify-center pointer-events-none touch-none overscroll-none"
           />
         )}
 
-        {/* 2. Background Image Layer */}
+        {/* 2. Background Image Layer (Object Contain Object Center) */}
         {currentStep.background && currentStep.background.trim() !== "" && !currentStep.isBlackScreen && !currentStep.cgImage && (
           <img
             key={`bg-${currentStep.background}`}
             src={currentStep.background}
             alt="Scene Background"
-            className={`absolute inset-0 w-full h-full object-cover z-0 pointer-events-none ${
+            className={`absolute inset-0 w-full h-full max-w-full max-h-full object-contain object-center z-0 pointer-events-none touch-none overscroll-none ${
               currentStep.backgroundAnimation === "shake" ? "animate-shake" : ""
             }`}
           />
@@ -297,7 +306,7 @@ export default function D1StoryPage({ onClose, onComplete }: D1StoryPageProps) {
         {currentStep.cgImage && currentStep.cgImage.trim() !== "" && !currentStep.isBlackScreen && (
           <div
             key={`cg-wrapper-${currentStep.cgImage}`}
-            className={`absolute inset-0 z-10 flex items-center justify-center pointer-events-none ${
+            className={`absolute inset-0 z-10 w-full h-full max-w-full max-h-full flex items-center justify-center pointer-events-none touch-none overscroll-none ${
               currentStep.background === "/pure_white.png" || currentStep.cgObjectContain
                 ? "bg-white"
                 : "bg-black"
@@ -307,12 +316,12 @@ export default function D1StoryPage({ onClose, onComplete }: D1StoryPageProps) {
               key={`cg-img-${currentStep.cgImage}`}
               src={currentStep.cgImage}
               alt="Scene CG"
-              className={`w-full ${
+              className={`w-full max-w-full ${
                 currentStep.cgAlignBottom
                   ? "absolute bottom-0 inset-x-0 max-h-[92vh] object-contain object-bottom"
                   : currentStep.cgObjectContain
-                  ? "h-full object-contain bg-white"
-                  : "h-full object-contain sm:object-cover"
+                  ? "h-full max-h-full object-contain bg-white"
+                  : "h-full max-h-full object-contain sm:object-cover"
               }`}
             />
           </div>
@@ -320,7 +329,7 @@ export default function D1StoryPage({ onClose, onComplete }: D1StoryPageProps) {
 
         {/* 4. Resized Responsive Overlays Layer */}
         {currentStep.overlays && currentStep.overlays.length > 0 && !currentStep.isBlackScreen && (
-          <div key={`overlays-${currentStep.id}`} className="absolute inset-0 z-20 pointer-events-none">
+          <div key={`overlays-${currentStep.id}`} className="absolute inset-0 z-20 pointer-events-none touch-none overscroll-none">
             {currentStep.overlays.map((ov, idx) => {
               const isTools = ov.includes("tools");
               return (
@@ -328,7 +337,7 @@ export default function D1StoryPage({ onClose, onComplete }: D1StoryPageProps) {
                   key={`ov-${ov}`}
                   src={ov}
                   alt="Overlay Asset"
-                  className={`absolute w-[35vw] max-w-[200px] h-auto object-contain animate-fadeIn ${
+                  className={`absolute w-[35vw] max-w-[200px] max-h-[30vh] h-auto object-contain animate-fadeIn ${
                     isTools ? "top-4 right-4 sm:top-6 sm:right-6" : "top-4 left-4 sm:top-6 sm:left-6"
                   }`}
                 />
@@ -340,11 +349,11 @@ export default function D1StoryPage({ onClose, onComplete }: D1StoryPageProps) {
         {/* 5. Independently Positioned Character Sprites */}
         {!currentStep.cgImage && !currentStep.isBlackScreen && (
           <>
-            {/* Left Sprite (Tiger) - 3.5s Smooth Easing Exit Animation */}
+            {/* Left Sprite (Tiger) */}
             {currentStep.leftSprite && (
               <div
                 key={`left-sprite-${currentStep.leftSprite}`}
-                className={`absolute bottom-12 md:bottom-16 left-4 md:left-16 z-20 pointer-events-none max-w-[50%] max-h-[80vh] ${
+                className={`absolute bottom-[16%] left-4 md:left-16 z-20 pointer-events-none max-w-[50%] max-h-[75vh] ${
                   currentStep.leftSpriteAnimation === "shrink-top-left"
                     ? "animate-shrink-top-left"
                     : ""
@@ -354,7 +363,7 @@ export default function D1StoryPage({ onClose, onComplete }: D1StoryPageProps) {
                   key={`left-img-${currentStep.leftSprite}`}
                   src={currentStep.leftSprite}
                   alt="Left Character"
-                  className="max-h-[72vh] object-contain shadow-none filter-none"
+                  className="max-h-[60vh] sm:max-h-[68vh] max-w-full object-contain shadow-none filter-none"
                 />
               </div>
             )}
@@ -363,7 +372,7 @@ export default function D1StoryPage({ onClose, onComplete }: D1StoryPageProps) {
             {currentStep.rightSprite && (
               <div
                 key={`right-sprite-${currentStep.rightSprite}`}
-                className={`absolute bottom-12 md:bottom-16 right-4 md:right-16 z-20 pointer-events-none max-w-[50%] max-h-[80vh] transition-all duration-500 ${
+                className={`absolute bottom-[16%] right-4 md:right-16 z-20 pointer-events-none max-w-[50%] max-h-[75vh] transition-all duration-500 ${
                   currentStep.rightSpriteAnimation === "jump"
                     ? "animate-jump"
                     : currentStep.rightSpriteAnimation === "hop-left"
@@ -375,7 +384,7 @@ export default function D1StoryPage({ onClose, onComplete }: D1StoryPageProps) {
                   key={`right-img-${currentStep.rightSprite}`}
                   src={currentStep.rightSprite}
                   alt="Right Character"
-                  className="max-h-[72vh] object-contain shadow-none filter-none"
+                  className="max-h-[60vh] sm:max-h-[68vh] max-w-full object-contain shadow-none filter-none"
                 />
               </div>
             )}
@@ -404,9 +413,9 @@ export default function D1StoryPage({ onClose, onComplete }: D1StoryPageProps) {
           </button>
         </div>
 
-        {/* 7. STRICT Pinned Bottom Single-Layer Dialogue Box */}
+        {/* 7. STRICT Pinned Bottom Single-Layer Dialogue Box (Anchored to Wrapper) */}
         {shouldShowDialogueBox && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 w-[92%] max-w-lg md:max-w-xl pointer-events-auto">
+          <div className="absolute bottom-[10%] left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-2xl pointer-events-auto">
             <div
               className={`bg-black/90 border-2 border-amber-400 p-3 sm:p-3.5 rounded-xl backdrop-blur-md flex flex-col gap-1 relative shadow-none ${
                 currentStep.speaker === "虎"
@@ -452,6 +461,7 @@ export default function D1StoryPage({ onClose, onComplete }: D1StoryPageProps) {
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
