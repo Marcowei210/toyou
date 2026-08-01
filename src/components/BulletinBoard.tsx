@@ -128,11 +128,11 @@ export default function BulletinBoard() {
     return () => unsubscribe();
   }, []);
 
-  // Only unlock "Important Announcements" tab if currentDay is D-4, D-3, D-2, D-1
-  const isImportantTabUnlocked = ["D-4", "D-3", "D-2", "D-1"].includes(currentDay);
+  // Only unlock "Important Announcements" tab if currentDay is D-4, D-3, D-2, D-1, D-Day
+  const isImportantTabUnlocked = ["D-4", "D-3", "D-2", "D-1", "D-Day"].includes(currentDay);
 
-  // Allow posting for ALL users if currentDay is D-4, D-3, D-2, D-1 OR if user is host
-  const canPostMessage = user?.role === "host" || ["D-4", "D-3", "D-2", "D-1"].includes(currentDay);
+  // Allow posting for ALL users if currentDay is D-4, D-3, D-2, D-1, D-Day OR if user is host
+  const canPostMessage = user?.role === "host" || ["D-4", "D-3", "D-2", "D-1", "D-Day"].includes(currentDay);
 
   // Filter posts:
   // - "General Board": Displays ALL messages (including important ones)
