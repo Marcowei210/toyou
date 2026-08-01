@@ -812,7 +812,30 @@ export default function AdminDashboard() {
                     </span>
                     <span className="text-[11px] text-[#8e8576]">點擊對應按鈕手動解鎖該組專屬碎片:</span>
 
-                    <div className="grid grid-cols-3 gap-2 mt-1">
+                    <div className="flex flex-col gap-2 mt-2 mb-2 border-t border-b border-[#38342e] py-2">
+                      <button
+                        onClick={async () => {
+                          try {
+                            await setDoc(
+                              doc(db, "system", `dday_group_${gId}`),
+                              {
+                                qSolved: { final_q1: true },
+                                updatedAt: new Date().toISOString(),
+                              },
+                              { merge: true }
+                            );
+                            alert(`成功手動解鎖 Group ${gId} 的下半場 Q1！`);
+                          } catch (e) {
+                            console.error("Manual Q1 unlock failed:", e);
+                          }
+                        }}
+                        className="py-2 border-2 border-amber-500 bg-amber-950/30 hover:bg-amber-500 hover:text-black text-amber-400 font-black rounded text-[11px] uppercase tracking-wider transition-colors cursor-pointer shadow-[0_0_5px_rgba(245,158,11,0.2)]"
+                      >
+                        手動解鎖該組下半場 Q1
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
                       {groupPieces.map((pNum) => (
                         <button
                           key={`g${gId}-p${pNum}`}

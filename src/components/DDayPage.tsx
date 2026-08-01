@@ -76,6 +76,24 @@ const MUTUAL_QA_LIST = [
   "Q6: (A)蜘蛛 (B)蛇 (C)老鼠 (由 Group 3 猜測 Group 2)"
 ];
 
+const FINAL_TASKS: Record<number, string[]> = {
+  1: [
+    "小闖關活動...你抽到的是放風箏！放起來就過關(圖片為加碼題)",
+    "請找到這個地方並且拍張照片上傳後，通知吐主(找不到也可以用1點跟吐主兌換地點)",
+    "尋找老虎碎片！碎片就在圖片中的地方，請找到後拍照上傳！"
+  ],
+  2: [
+    "小闖關活動...你抽到的是羽球！兩人對打超過5輪過關(圖片為加碼題)",
+    "請找到這個地方並且拍張照片上傳後，通知吐主(找不到也可以用1點跟吐主兌換地點)",
+    "尋找老虎碎片！碎片就在圖片中的地方，請找到後拍照上傳！"
+  ],
+  3: [
+    "小闖關活動...你抽到的是排球！兩人對打超過10顆過關(圖片為加碼題)",
+    "請找到這個地方並且拍張一樣的照片上傳後，通知吐主(找不到也可以用1點跟吐主兌換地點)",
+    "尋找老虎碎片！碎片就在圖片中的地方，請找到後拍照上傳！"
+  ]
+};
+
 // First Half 15 Grid Pieces Mapping (Numbered 1 to 15 from Top-Left to Bottom-Right)
 const GRID_PIECES: GridPieceDef[] = [
   // --- ROW 1 (Horizontal 1x2, Cols 1-6) ---
@@ -318,6 +336,9 @@ export default function DDayPage() {
   const [hasReadPhase2Instructions, setHasReadPhase2Instructions] = useState(false);
   const [hasClickedProceed, setHasClickedProceed] = useState(false);
   const [mutualQaStep, setMutualQaStep] = useState(0);
+
+  const [finalQ2Answer, setFinalQ2Answer] = useState("");
+  const [finalQ3Answer, setFinalQ3Answer] = useState("");
 
   // State 1: Pre-Game Question State & Attempt Counter
   const [preGameAnswer, setPreGameAnswer] = useState<string>("");
@@ -737,7 +758,7 @@ export default function DDayPage() {
         { merge: true }
       );
 
-      alert("照片上傳成功！已送出至 GM 審核對列中。");
+      alert("照片上傳成功！已送出至 GM 審核隊列中。");
       setSelectedUploadPiece(null);
       setUploadFile(null);
       setUploadPreview(null);
@@ -769,6 +790,12 @@ export default function DDayPage() {
   };
 
   const activeQuestion = getActiveQuestion();
+
+  const isFinalTasksUnlocked = allGroupsData[3]?.qSolved?.["p11"] === true;
+  const isFinalQ1Solved = currentGroupData?.qSolved?.["final_q1"] === true;
+  const isFinalQ2Solved = currentGroupData?.qSolved?.["final_q2"] === true;
+  const isFinalQ3Solved = currentGroupData?.qSolved?.["final_q3"] === true;
+  const isGrandFinale = isFinalQ1Solved && isFinalQ2Solved && isFinalQ3Solved;
 
   // Reset feedback and input whenever the active question key changes
   useEffect(() => {
@@ -961,7 +988,7 @@ export default function DDayPage() {
           {isFirstHalfComplete && (hasClickedProceed || hasReadPhase2Instructions) && (
             <div className="flex flex-col gap-4">
               {/* MUTUAL Q&A GLOBAL BANNER */}
-              {isPhase2Unlocked && mutualQaStep > 0 && mutualQaStep <= 6 && (
+              {isPhase2Unlocked && mutualQaStep > 0 && mutualQaStep <= 6 && !isFinalTasksUnlocked && (
                 <div className="bg-amber-100 border-2 border-black p-4 sm:p-6 rounded text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] animate-bounce-slow">
                   <h3 className="text-sm font-black text-amber-700 uppercase tracking-widest mb-2">【默契考驗 - 全域即時問答】</h3>
                   <p className="text-xl sm:text-2xl md:text-3xl font-black text-black leading-snug">
@@ -1312,6 +1339,106 @@ export default function DDayPage() {
                     );
                   })}
                 </div>
+
+                {/* FINAL 3 TASKS RENDER BLOCK */}
+                {isFinalTasksUnlocked && (
+                  <div className="flex flex-col gap-4 mt-6 animate-fadeIn">
+                    {isGrandFinale ? (
+                      <div className="bg-amber-100 border-4 border-black p-6 sm:p-8 rounded text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+                        <h2 className="text-2xl sm:text-3xl font-black text-black leading-snug">
+                          等到所有組別人都解完，就能夠一起解開謎底：______，現在先傳訊息通知吐主吧
+                        </h2>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-4">
+                        {/* Q1 (GM Unlock Only) */}
+                        <div className={`p-4 border-2 border-black rounded shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] ${isFinalQ1Solved ? "bg-stone-300" : "bg-white"}`}>
+                          <div className="flex items-center gap-2 font-black text-lg mb-2">
+                            <CheckCircle2 className={`w-5 h-5 ${isFinalQ1Solved ? "text-green-600" : "text-stone-400"}`} />
+                            <span className="text-black">【Q1: 尋找目標】</span>
+                          </div>
+                          <p className="font-bold text-stone-800">{FINAL_TASKS[groupId]?.[0]}</p>
+                          <img src={`/second_half/g${groupId}-q1.jpg`} alt="任務圖片" className="w-full max-w-md rounded-md border-2 border-neutral-700 my-3" />
+                          {!isFinalQ1Solved && (
+                            <p className="text-xs font-bold text-red-600 mt-2">(等待 GM 現場確認並手動解鎖)</p>
+                          )}
+                        </div>
+
+                        {/* Q2 */}
+                        {isFinalQ1Solved && (
+                          <div className={`p-4 border-2 border-black rounded shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] ${isFinalQ2Solved ? "bg-stone-300" : "bg-white"}`}>
+                            <div className="flex items-center gap-2 font-black text-lg mb-2">
+                              <CheckCircle2 className={`w-5 h-5 ${isFinalQ2Solved ? "text-green-600" : "text-stone-400"}`} />
+                              <span className="text-black">【Q2: 地點確認】</span>
+                            </div>
+                            <p className="font-bold text-stone-800 mb-3">{FINAL_TASKS[groupId]?.[1]}</p>
+                            <img src={`/second_half/g${groupId}-q2.jpg`} alt="任務圖片" className="w-full max-w-md rounded-md border-2 border-neutral-700 my-3" />
+                            {!isFinalQ2Solved && (
+                              <div className="flex flex-col gap-2">
+                                {currentGroupData.secondHalfSubmissions?.["final_q2"]?.status === "pending" ? (
+                                  <div className="flex items-center justify-center gap-2 text-amber-700 font-bold bg-amber-100 px-4 py-3 border-2 border-amber-600 rounded">
+                                    <Clock className="w-5 h-5 animate-spin" />
+                                    照片審核中...請等待 GM 確認
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => {
+                                      setSelectedUploadPiece({
+                                        title: "【Q2: 地點確認】",
+                                        qKey: "final_q2",
+                                        pieceNumber: 992,
+                                      } as any);
+                                    }}
+                                    className="w-full py-3 bg-amber-300 hover:bg-black hover:text-white border-2 border-black font-black uppercase rounded cursor-pointer text-black flex items-center justify-center gap-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                                  >
+                                    <Camera className="w-5 h-5" />
+                                    上傳照片解鎖
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Q3 */}
+                        {isFinalQ1Solved && isFinalQ2Solved && (
+                          <div className={`p-4 border-2 border-black rounded shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] ${isFinalQ3Solved ? "bg-stone-300" : "bg-white"}`}>
+                            <div className="flex items-center gap-2 font-black text-lg mb-2">
+                              <CheckCircle2 className={`w-5 h-5 ${isFinalQ3Solved ? "text-green-600" : "text-stone-400"}`} />
+                              <span className="text-black">【Q3: 尋找老虎碎片】</span>
+                            </div>
+                            <p className="font-bold text-stone-800 mb-3">{FINAL_TASKS[groupId]?.[2]}</p>
+                            <img src={`/second_half/g${groupId}-q3.jpg`} alt="任務圖片" className="w-full max-w-md rounded-md border-2 border-neutral-700 my-3" />
+                            {!isFinalQ3Solved && (
+                              <div className="flex flex-col gap-2">
+                                {currentGroupData.secondHalfSubmissions?.["final_q3"]?.status === "pending" ? (
+                                  <div className="flex items-center justify-center gap-2 text-amber-700 font-bold bg-amber-100 px-4 py-3 border-2 border-amber-600 rounded">
+                                    <Clock className="w-5 h-5 animate-spin" />
+                                    照片審核中...請等待 GM 確認
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => {
+                                      setSelectedUploadPiece({
+                                        title: "【Q3: 尋找老虎碎片】",
+                                        qKey: "final_q3",
+                                        pieceNumber: 993,
+                                      } as any);
+                                    }}
+                                    className="w-full py-3 bg-amber-300 hover:bg-black hover:text-white border-2 border-black font-black uppercase rounded cursor-pointer text-black flex items-center justify-center gap-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                                  >
+                                    <Camera className="w-5 h-5" />
+                                    上傳照片解鎖
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* VERCEL BLOB PHOTO UPLOAD MODAL FOR SECOND HALF TASKS */}
@@ -1337,13 +1464,14 @@ export default function DDayPage() {
 
                     <form onSubmit={handleVercelBlobUpload} className="flex flex-col gap-4">
                       <div className="bg-white border-2 border-black p-4 rounded text-stone-800 text-sm font-extrabold leading-relaxed">
-                        請拍攝現場解密任務相片並進行上傳，提交後將由 GM 進行審核。審核通過即可解鎖地圖碎片 #{selectedUploadPiece.pieceNumber}！
+                        請拍攝現場解密任務相片並進行上傳，提交後將由 GM 進行審核。審核通過即可解鎖{selectedUploadPiece.pieceNumber > 900 ? "任務" : `地圖碎片 #${selectedUploadPiece.pieceNumber}`}！
                       </div>
 
                       <div className="flex flex-col items-center justify-center border-2 border-dashed border-black bg-white p-6 rounded cursor-pointer hover:bg-yellow-50">
                         <input
                           type="file"
                           accept="image/*"
+                          capture="environment"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
@@ -1379,7 +1507,7 @@ export default function DDayPage() {
                         className="w-full py-3.5 bg-amber-300 hover:bg-black hover:text-white border-2 border-black text-black font-black text-lg rounded uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-none"
                       >
                         <Upload className="w-5 h-5" />
-                        <span>{isUploading ? "照片上傳中 (Vercel Blob)..." : "送出照片進行審核"}</span>
+                        <span>{isUploading ? "照片上傳中 ..." : "送出照片進行審核"}</span>
                       </button>
                     </form>
                   </div>
