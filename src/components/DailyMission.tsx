@@ -13,6 +13,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import RPGDialogBox from "@/components/RPGDialogBox";
+import DDayPage from "@/components/DDayPage";
 import {
   Calendar,
   Send,
@@ -50,6 +51,7 @@ const STAGE_LABELS: Record<string, string> = {
   "D-3": "D-3: bottle+routing",
   "D-2": "D-2: 回覆bottle+下次許願",
   "D-1": "D-1: 收到回覆+播放劇情",
+  "D-Day": "D-Day: 最終大考驗",
 };
 
 // Helper to clean message text (removes [Task D-X ...]: prefixes and wrapping quotes)
@@ -554,7 +556,7 @@ export default function DailyMission() {
       <div className="flex items-center justify-between border-b-2 border-black pb-3 gap-2">
         <div className="flex items-center gap-1.5 text-black font-black uppercase tracking-wider text-sm sm:text-base md:text-lg truncate">
           <Calendar className="w-5 h-5 text-black shrink-0" />
-          <span className="truncate">{currentDay} 小任務</span>
+          <span className="truncate">{currentDay} 任務</span>
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
@@ -1048,6 +1050,11 @@ export default function DailyMission() {
             <span>看看發生什麼事了</span>
           </button>
         </div>
+      )}
+
+      {/* --- DAY D-Day: 最終大考驗 --- */}
+      {currentDay === "D-Day" && (
+        <DDayPage />
       )}
 
       {/* Full-Screen Visual Novel RPG Overlay Component */}

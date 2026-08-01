@@ -86,6 +86,8 @@ export default function AdminDashboard() {
   const [messagesList, setMessagesList] = useState<MessageDoc[]>([]);
   const [submissionsList, setSubmissionsList] = useState<SubmissionDoc[]>([]);
   const [gameState, setGameState] = useState<SystemGameState>({});
+  const [isPhase2Unlocked, setIsPhase2Unlocked] = useState(false);
+  const [mutualQaStep, setMutualQaStep] = useState(0);
 
   // Local score input state for fluid typing without onSnapshot resets
   const [scoreInputs, setScoreInputs] = useState<Record<string, string>>({});
@@ -178,11 +180,25 @@ export default function AdminDashboard() {
       (err) => console.warn("Admin System listener warning:", err)
     );
 
+    // 5. Fetch D-Day global state
+    const unsubDDayGlobal = onSnapshot(
+      doc(db, "system", "dday_global"),
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          setIsPhase2Unlocked(data.isPhase2Unlocked || false);
+          setMutualQaStep(data.mutualQaStep || 0);
+        }
+      },
+      (err) => console.warn("Admin DDayGlobal listener warning:", err)
+    );
+
     return () => {
       unsubUsers();
       unsubWorries();
       unsubSubmissions();
       unsubSystem();
+      unsubDDayGlobal();
     };
   }, [user]);
 
@@ -444,6 +460,74 @@ export default function AdminDashboard() {
           </button>
         </div>
 
+        {/* GLOBAL PHASE 2 UNLOCK COMMAND */}
+        <div className="bg-[#24221f] border-2 border-amber-500 p-6 rounded flex flex-col items-center justify-center gap-6 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+          <div className="flex flex-col items-center gap-4">
+            <button
+              onClick={async () => {
+                try {
+                  await setDoc(doc(db, "system", "dday_global"), { isPhase2Unlocked: !isPhase2Unlocked }, { merge: true });
+                  alert(isPhase2Unlocked ? "已關閉下半場" : "已全域解鎖下半場！");
+                } catch (err) {
+                  console.error("Failed to unlock Phase 2:", err);
+                  alert("解鎖失敗");
+                }
+              }}
+              className={`py-4 px-10 border-2 font-black text-xl sm:text-2xl rounded uppercase tracking-widest shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all cursor-pointer ${
+                isPhase2Unlocked 
+                  ? "bg-red-500 border-red-700 text-black hover:bg-red-400" 
+                  : "bg-amber-400 border-amber-600 text-black hover:bg-amber-300"
+              }`}
+            >
+              {isPhase2Unlocked ? "【全域廣播】鎖定下半場" : "【全域廣播】解鎖下半場"}
+            </button>
+            <span className="text-base font-bold text-[#e6e0d4] bg-[#1b1a18] px-4 py-2 rounded border border-[#38342e]">
+              目前狀態: <span className={isPhase2Unlocked ? "text-emerald-400" : "text-amber-500"}>{isPhase2Unlocked ? "下半場已解鎖" : "尚未解鎖"}</span>
+            </span>
+          </div>
+
+          {/* MUTUAL Q&A CONTROLS */}
+          {isPhase2Unlocked && (
+            <div className="w-full max-w-2xl bg-[#1b1a18] border border-[#38342e] rounded p-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between border-b border-[#38342e] pb-2">
+                <span className="text-sm font-bold text-amber-500 uppercase tracking-widest">默契考驗 (Mutual Q&A) 控制面板</span>
+                <span className="text-xs font-bold text-[#8e8576]">目前第 {mutualQaStep} 題 (0=隱藏)</span>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-4">
+                <button
+                  onClick={() => setDoc(doc(db, "system", "dday_global"), { mutualQaStep: Math.max(0, mutualQaStep - 1) }, { merge: true })}
+                  className="px-4 py-2 bg-[#262421] hover:bg-amber-500 hover:text-black border border-[#38342e] rounded font-bold transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={mutualQaStep <= 0}
+                >
+                  上一題
+                </button>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {[0,1,2,3,4,5,6].map(step => (
+                    <button
+                      key={`qa-step-${step}`}
+                      onClick={() => setDoc(doc(db, "system", "dday_global"), { mutualQaStep: step }, { merge: true })}
+                      className={`w-8 h-8 rounded-full border-2 font-bold text-xs flex items-center justify-center transition-all cursor-pointer ${
+                        mutualQaStep === step 
+                          ? "bg-amber-500 border-amber-600 text-black shadow-[0_0_8px_rgba(245,158,11,0.5)] scale-110" 
+                          : "bg-[#262421] border-[#38342e] text-[#8e8576] hover:bg-[#38342e]"
+                      }`}
+                    >
+                      {step}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setDoc(doc(db, "system", "dday_global"), { mutualQaStep: Math.min(6, mutualQaStep + 1) }, { merge: true })}
+                  className="px-4 py-2 bg-[#262421] hover:bg-amber-500 hover:text-black border border-[#38342e] rounded font-bold transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={mutualQaStep >= 6}
+                >
+                  下一題
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* PANEL A: USER MANAGEMENT & GLOBAL CONTROLS */}
         {activeTab === "users" && (
           <div className="bg-[#1b1a18] border border-[#38342e] p-6 rounded-sm flex flex-col gap-6">
@@ -468,6 +552,7 @@ export default function AdminDashboard() {
                     <option value="D-3">D-3: bottle+routing</option>
                     <option value="D-2">D-2: 回覆bottle+下次許願</option>
                     <option value="D-1">D-1: 收到回覆+播放劇情</option>
+                    <option value="D-Day">D-Day: 出發！ (最終大考驗)</option>
                   </select>
                   <span className="text-[10px] text-[#8e8576]">
                     Instantly updates player dashboard to the selected day stage.
@@ -691,109 +776,209 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* PANEL C: MANUAL APPROVAL QUEUE */}
+        {/* PANEL C: MANUAL APPROVAL QUEUE & D-DAY GROUP REVIEW / MANUAL UNLOCK */}
         {activeTab === "queue" && (
-          <div className="bg-[#1b1a18] border border-[#38342e] p-6 rounded-sm flex flex-col gap-4">
-            <div className="flex items-center justify-between border-b border-[#38342e] pb-3">
+          <div className="bg-[#1b1a18] border border-[#38342e] p-6 rounded-sm flex flex-col gap-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#38342e] pb-3 gap-3">
               <h2 className="text-sm font-bold uppercase tracking-wider text-amber-500 flex items-center gap-2">
-                <Layers className="w-4 h-4" /> Evidence & Puzzle Approval Queue
+                <Layers className="w-4 h-4" /> Evidence & D-Day Photo Review Queue
               </h2>
               <button
                 onClick={handleCreateSampleSubmission}
-                className="px-3 py-1 border border-amber-600 bg-amber-950/20 text-amber-500 hover:bg-amber-600 hover:text-black text-xs font-bold rounded flex items-center gap-1 transition-colors cursor-pointer"
+                className="px-3 py-1 border border-amber-600 bg-amber-950/20 text-amber-500 hover:bg-amber-600 hover:text-black text-xs font-bold rounded flex items-center gap-1 transition-colors cursor-pointer shrink-0"
               >
-                <Plus className="w-3.5 h-3.5" /> Submit Test Puzzle Evidence
+                <Plus className="w-3.5 h-3.5" /> Submit Test Evidence
               </button>
             </div>
 
-            {submissionsList.length === 0 ? (
-              <p className="text-xs text-[#8e8576] italic py-8 text-center">
-                Approval queue is clear. No pending evidence or puzzle submissions.
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {submissionsList.map((sub) => (
-                  <div
-                    key={sub.id}
-                    className={`bg-[#24221f] border p-4 rounded flex flex-col gap-3 relative ${
-                      sub.status === "approved"
-                        ? "border-emerald-900/60"
-                        : sub.status === "rejected"
-                        ? "border-red-900/60"
-                        : "border-amber-600/60"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-amber-500">
-                        Agent: {sub.accountId}
-                      </span>
-                      <span
-                        className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded border ${
-                          sub.status === "approved"
-                            ? "bg-emerald-950/40 border-emerald-600 text-emerald-400"
-                            : sub.status === "rejected"
-                            ? "bg-red-950/40 border-red-600 text-red-400"
-                            : "bg-amber-950/40 border-amber-600 text-amber-400 animate-pulse"
-                        }`}
-                      >
-                        {sub.status}
-                      </span>
-                    </div>
-
-                    <p className="text-xs text-[#e6e0d4] bg-[#1b1a18] p-2 border border-[#38342e] rounded">
-                      "{sub.note}"
-                    </p>
-
-                    {sub.imageUrl && (
-                      <div className="w-full h-40 bg-black rounded overflow-hidden border border-[#38342e]">
-                        <img
-                          src={sub.imageUrl}
-                          alt="Submission"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-
-                    {sub.status === "pending" && (
-                      <div className="flex flex-col gap-2 mt-2">
-                        {sub.imageUrl ? (
-                          <button
-                            onClick={() => handleApproveAndPostToBoard(sub)}
-                            className="w-full py-1.5 border border-amber-600 bg-amber-950/40 hover:bg-amber-600 hover:text-black text-amber-400 rounded text-xs font-bold uppercase flex items-center justify-center gap-1 transition-all cursor-pointer"
-                            title="Approve and publish photo anonymously to Agency Bulletin Board"
-                          >
-                            <Megaphone className="w-3.5 h-3.5" /> Approve & Post to Board (Anonymous)
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleReviewSubmission(sub, "approved")}
-                            className="w-full py-1.5 border border-emerald-600 bg-emerald-950/30 hover:bg-emerald-600 hover:text-black text-emerald-400 rounded text-xs font-bold uppercase flex items-center justify-center gap-1 transition-all cursor-pointer"
-                          >
-                            <CheckCircle className="w-3.5 h-3.5" /> Approve
-                          </button>
-                        )}
-
-                        <button
-                          onClick={() => handleReviewSubmission(sub, "rejected")}
-                          className="w-full py-1.5 border border-red-600 bg-red-950/30 hover:bg-red-600 hover:text-white text-red-400 rounded text-xs font-bold uppercase flex items-center justify-center gap-1 transition-all cursor-pointer"
-                        >
-                          <XCircle className="w-3.5 h-3.5" /> Reject
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Functional Delete / Dismiss button for ALL items in queue */}
-                    <button
-                      onClick={() => handleDismissSubmission(sub.id)}
-                      className="w-full mt-2 py-1 px-3 border border-[#38342e] hover:border-red-600/80 bg-[#1b1a18] text-[#8e8576] hover:text-red-400 rounded text-xs font-mono flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                      title="Delete / Dismiss from Queue"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" /> Delete / Dismiss from Queue
-                    </button>
-                  </div>
-                ))}
+            {/* D-DAY GM MANUAL PIECE AWARD CONTROL PANEL (GROUPS 1, 2, 3) */}
+            <div className="bg-[#24221f] border border-[#38342e] p-4 rounded flex flex-col gap-4">
+              <div className="flex items-center gap-2 text-amber-400 font-bold text-xs uppercase tracking-wider border-b border-[#38342e] pb-2">
+                <Award className="w-4 h-4 text-amber-500" />
+                <span>【D-Day 手動解鎖/贈予拼圖 (Lunch Event & GM Overrides)】</span>
               </div>
-            )}
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[1, 2, 3].map((gId) => {
+                  let groupPieces: number[] = [];
+                  if (gId === 1) groupPieces = [1, 2, 7, 8, 13, 14];
+                  if (gId === 2) groupPieces = [3, 4, 9, 10, 15, 16];
+                  if (gId === 3) groupPieces = [5, 6, 11, 12, 17, 18];
+
+                  return (
+                  <div key={`gm-group-award-${gId}`} className="bg-[#1b1a18] border border-[#38342e] p-3 rounded flex flex-col gap-2">
+                    <span className="text-xs font-bold text-amber-500 flex items-center gap-1">
+                      <Users className="w-3.5 h-3.5" /> Group {gId} (第 {gId} 組)
+                    </span>
+                    <span className="text-[11px] text-[#8e8576]">點擊對應按鈕手動解鎖該組專屬碎片:</span>
+
+                    <div className="grid grid-cols-3 gap-2 mt-1">
+                      {groupPieces.map((pNum) => (
+                        <button
+                          key={`g${gId}-p${pNum}`}
+                          onClick={async () => {
+                            try {
+                              const pKey = `p${pNum}`;
+                              await setDoc(
+                                doc(db, "system", `dday_group_${gId}`),
+                                {
+                                  qSolved: { [pKey]: true },
+                                  updatedAt: new Date().toISOString(),
+                                },
+                                { merge: true }
+                              );
+                              alert(`成功手動解鎖 Group ${gId} 的碎片 #${pNum}！`);
+                            } catch (e) {
+                              console.error("Manual piece unlock failed:", e);
+                            }
+                          }}
+                          className="py-2 border border-[#38342e] bg-[#262421] hover:bg-amber-500 hover:text-black text-[#e6e0d4] rounded text-[11px] font-bold transition-all cursor-pointer"
+                          title={`Click to manually unlock Piece #${pNum} for Group ${gId}`}
+                        >
+                          發放碎片 #{pNum}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* SUBMISSION REVIEW QUEUE LIST */}
+            <div className="flex flex-col gap-3">
+              <h3 className="text-xs font-bold text-[#8e8576] uppercase tracking-wider">
+                待審核與歷史相片對列 (Pending & Reviewed Submissions)
+              </h3>
+
+              {submissionsList.length === 0 ? (
+                <p className="text-xs text-[#8e8576] italic py-6 text-center">
+                  Approval queue is clear. No pending evidence or photo submissions.
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {submissionsList.map((sub) => (
+                    <div
+                      key={sub.id}
+                      className={`bg-[#24221f] border p-4 rounded flex flex-col gap-3 relative ${
+                        sub.status === "approved"
+                          ? "border-emerald-900/60"
+                          : sub.status === "rejected"
+                          ? "border-red-900/60"
+                          : "border-amber-600/60"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-amber-500">
+                          Agent: {sub.accountId} (Group {(sub as any).groupId || 1})
+                        </span>
+                        <span
+                          className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded border ${
+                            sub.status === "approved"
+                              ? "bg-emerald-950/40 border-emerald-600 text-emerald-400"
+                              : sub.status === "rejected"
+                              ? "bg-red-950/40 border-red-600 text-red-400"
+                              : "bg-amber-950/40 border-amber-600 text-amber-400 animate-pulse"
+                          }`}
+                        >
+                          {sub.status}
+                        </span>
+                      </div>
+
+                      {(sub as any).pieceNumber && (
+                        <span className="text-xs font-bold text-amber-400">
+                          🧩 D-Day 碎片號碼: #{(sub as any).pieceNumber} ({(sub as any).pieceKey})
+                        </span>
+                      )}
+
+                      {sub.note && (
+                        <p className="text-xs text-[#e6e0d4] bg-[#1b1a18] p-2 border border-[#38342e] rounded">
+                          "{sub.note}"
+                        </p>
+                      )}
+
+                      {sub.imageUrl && (
+                        <div className="w-full h-48 bg-black rounded overflow-hidden border border-[#38342e]">
+                          <img
+                            src={sub.imageUrl}
+                            alt="Submission"
+                            className="w-full h-full object-contain bg-stone-900"
+                          />
+                        </div>
+                      )}
+
+                      {sub.status === "pending" && (
+                        <div className="flex flex-col gap-2 mt-2">
+                          <button
+                            onClick={async () => {
+                              try {
+                                // 1. Mark submission approved
+                                await updateDoc(doc(db, "submissions", sub.id), { status: "approved" });
+
+                                // 2. If D-Day piece submission, unlock piece for group
+                                const subGroup = (sub as any).groupId || 1;
+                                const subPieceKey = (sub as any).pieceKey;
+                                if (subPieceKey) {
+                                  await setDoc(
+                                    doc(db, "system", `dday_group_${subGroup}`),
+                                    {
+                                      qSolved: { [subPieceKey]: true },
+                                      [`secondHalfSubmissions.${subPieceKey}.status`]: "approved",
+                                      updatedAt: new Date().toISOString(),
+                                    },
+                                    { merge: true }
+                                  );
+                                }
+
+                                alert("已審核通過！該拼圖碎片已成功解鎖！");
+                              } catch (e) {
+                                console.error("Approve failed:", e);
+                              }
+                            }}
+                            className="w-full py-2 border border-emerald-600 bg-emerald-950/30 hover:bg-emerald-600 hover:text-black text-emerald-400 rounded text-xs font-bold uppercase flex items-center justify-center gap-1 transition-all cursor-pointer shadow"
+                          >
+                            <CheckCircle className="w-4 h-4" /> 通過審核 (Approve & Unlock Piece)
+                          </button>
+
+                          <button
+                            onClick={async () => {
+                              try {
+                                await updateDoc(doc(db, "submissions", sub.id), { status: "rejected" });
+                                const subGroup = (sub as any).groupId || 1;
+                                const subPieceKey = (sub as any).pieceKey;
+                                if (subPieceKey) {
+                                  await setDoc(
+                                    doc(db, "system", `dday_group_${subGroup}`),
+                                    {
+                                      [`secondHalfSubmissions.${subPieceKey}.status`]: "rejected",
+                                      updatedAt: new Date().toISOString(),
+                                    },
+                                    { merge: true }
+                                  );
+                                }
+                              } catch (e) {
+                                console.error("Reject failed:", e);
+                              }
+                            }}
+                            className="w-full py-1.5 border border-red-600 bg-red-950/30 hover:bg-red-600 hover:text-white text-red-400 rounded text-xs font-bold uppercase flex items-center justify-center gap-1 transition-all cursor-pointer"
+                          >
+                            <XCircle className="w-3.5 h-3.5" /> 退回審核 (Reject)
+                          </button>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => handleDismissSubmission(sub.id)}
+                        className="w-full mt-2 py-1 px-3 border border-[#38342e] hover:border-red-600/80 bg-[#1b1a18] text-[#8e8576] hover:text-red-400 rounded text-xs font-mono flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                        title="Delete / Dismiss from Queue"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Delete / Dismiss from Queue
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

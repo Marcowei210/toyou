@@ -122,6 +122,19 @@ export default function UserProfileCard({ user, onOpenAvatarModal }: UserProfile
           <span className="text-base md:text-lg font-black text-black truncate">{user.accountId}</span>
         </div>
 
+        <div className="bg-yellow-100 border-2 border-black px-3 py-1.5 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] w-full flex items-center justify-between">
+          <span className="text-stone-800 text-sm md:text-base font-extrabold mr-1 shrink-0">Group:</span>
+          <span className="text-base md:text-lg font-black text-black truncate">
+            {user.team || (user as any).group
+              ? String(user.team || (user as any).group).includes("2")
+                ? "Group 2 (第二組)"
+                : String(user.team || (user as any).group).includes("3")
+                ? "Group 3 (第三組)"
+                : "Group 1 (第一組)"
+              : "Group 1 (第一組)"}
+          </span>
+        </div>
+
         <div className="bg-amber-300 border-2 border-black px-3 py-1.5 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] w-full flex items-center justify-between">
           <span className="text-stone-900 text-sm md:text-base font-black shrink-0">pt:</span>
           <span className="text-lg md:text-xl font-black text-black">{user.score || 0}</span>
